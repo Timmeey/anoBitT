@@ -1,25 +1,15 @@
 package anoBitT;
 
-import com.google.gson.Gson;
-import com.google.inject.Inject;
-
 import de.timmeey.anoBitT.http.communication.HTTPResponse;
 
-public class DHTReply extends HTTPResponse {
-	private String key;
-	private String value;
-	@Inject
-	public DHTReply(Gson gson) {
-		super(gson);
+public class DHTReply implements HTTPResponse {
+	private final String key;
+	private final String value;
 
-	}
-
-	public void setKey(String key) {
+	protected DHTReply(String key, String value) {
 		this.key = key;
-	}
-
-	public void setValue(String value) {
 		this.value = value;
+
 	}
 
 	public String getKey() {
@@ -29,7 +19,5 @@ public class DHTReply extends HTTPResponse {
 	public String getValue() {
 		return value;
 	}
-
-
 
 }

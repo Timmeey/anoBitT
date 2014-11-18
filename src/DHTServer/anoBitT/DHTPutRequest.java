@@ -1,8 +1,16 @@
 package anoBitT;
 
-public class DHTPutRequest {
-	String key;
-	String value;
+import de.timmeey.anoBitT.http.communication.HTTPRequest;
+
+public class DHTPutRequest extends HTTPRequest<DHTReply> {
+	final String key;
+	final String value;
+
+	public DHTPutRequest(String key, String value) {
+		super(DHTReply.class);
+		this.key = key;
+		this.value = value;
+	}
 
 	public String getKey() {
 		return key;
@@ -10,11 +18,6 @@ public class DHTPutRequest {
 
 	public String getValue() {
 		return value;
-	}
-
-	public DHTReply(String key, String value) {
-		this.key = key;
-		this.value = value;
 	}
 
 }

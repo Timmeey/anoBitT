@@ -22,4 +22,10 @@ public class GuiceAnnotations {
 	public @interface AppProperties {
 	}
 
+	@BindingAnnotation
+	@Target({ FIELD, PARAMETER, METHOD })
+	@Retention(RUNTIME)
+	public @interface HTTPRequestExecutor {
+	}
+
 }
