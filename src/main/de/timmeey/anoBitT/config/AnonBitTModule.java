@@ -13,15 +13,20 @@ import timmeeyLib.properties.PropertiesFactory;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.sun.net.httpserver.HttpServer;
 
+import de.timmeey.anoBitT.communication.HTTPRequestService;
+import de.timmeey.anoBitT.communication.external.ExternalCommunicationHandler;
+import de.timmeey.anoBitT.communication.impl.HTTPRequestHandlerImpl;
+import de.timmeey.anoBitT.config.GuiceAnnotations.AppProperties;
+import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
 import de.timmeey.anoBitT.config.GuiceAnnotations.HTTPRequestExecutor;
+import de.timmeey.anoBitT.config.GuiceAnnotations.HttpExternalServerPort;
 import de.timmeey.anoBitT.config.GuiceAnnotations.TorProperties;
 import de.timmeey.anoBitT.dht.DHTService;
-import de.timmeey.anoBitT.dht.DHTServiceImpl;
-import de.timmeey.anoBitT.http.communication.HTTPRequestService;
-import de.timmeey.anoBitT.http.communication.impl.HTTPRequestHandlerImpl;
-import de.timmeey.anoBitT.network.portSocketForwarder.SocketFactory;
-import de.timmeey.anoBitT.network.portSocketForwarder.UrlFactory;
+import de.timmeey.anoBitT.dht.impl.DHTServiceFakeImpl;
+import de.timmeey.anoBitT.network.SocketFactory;
+import de.timmeey.anoBitT.network.UrlFactory;
 import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.anoBitT.tor.TorManager;
 
@@ -34,10 +39,13 @@ public class AnonBitTModule extends AbstractModule {
 	protected void configure() {
 		try {
 
-			bind(DHTService.class).to(DHTServiceImpl.class);
+			bind(DHTService.class).to(DHTServiceFakeImpl.class);
 
 			bind(PropertiesAccessor.class).annotatedWith(TorProperties.class)
 					.toInstance(PropertiesFactory.getPropertiesAccessor("tor"));
+
+			bind(PropertiesAccessor.class).annotatedWith(AppProperties.class)
+					.toInstance(PropertiesFactory.getPropertiesAccessor("app"));
 
 			bind(SocketFactory.class);
 
@@ -45,9 +53,25 @@ public class AnonBitTModule extends AbstractModule {
 
 			bind(UrlFactory.class);
 			bind(HTTPRequestService.class).to(HTTPRequestHandlerImpl.class);
+
 			bind(ExecutorService.class)
 					.annotatedWith(HTTPRequestExecutor.class).toInstance(
 							httpExecutor);
+
+			bind(ExternalCommunicationHandler.class);
+			bind(HttpServer.class).toInstance(HttpServer.create());
+
+			bind(PropertiesAccessor.class).annotatedWith(DHTProperties.class)
+					.toInstance(PropertiesFactory.getPropertiesAccessor("dht"));
+
+			bind(DHTService.class).to(DHTServiceFakeImpl.class);
+
+			bind(Integer.class).annotatedWith(HttpExternalServerPort.class)
+					.toInstance(
+							Integer.parseInt(PropertiesFactory
+									.getPropertiesAccessor("app").getProperty(
+											"externalHttpCommunicationPort",
+											"62752")));
 
 		} catch (NotYetInitializedException e) {
 			// TODO Auto-generated catch block
@@ -62,4 +86,5 @@ public class AnonBitTModule extends AbstractModule {
 	KeyPair provideTorManagerKeyPair(TorManager torManager) {
 		return torManager.getKeyPair();
 	}
+
 }

@@ -9,12 +9,11 @@ import timmeeyLib.properties.PropertiesFactory;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
+import de.timmeey.anoBitT.communication.external.ExternalCommunicationHandler;
 import de.timmeey.anoBitT.config.AnonBitTModule;
-import de.timmeey.anoBitT.http.external.ExternalServer;
 import de.timmeey.anoBitT.tor.TorManager;
 
 public class main {
-	public static NetLayer torNetLayer;
 	public static final String confDir = "/home/timmeey/.anoBitT/";
 
 	public static void main(String[] args) throws Exception {
@@ -26,12 +25,11 @@ public class main {
 		 * Now that we've got the injector, we can build objects.
 		 */
 		TorManager tor = injector.getInstance(TorManager.class);
+		ExternalCommunicationHandler externalCom = injector
+				.getInstance(ExternalCommunicationHandler.class);
 
 		tor.startTor();
-
-		ExternalServer.start();
-		// SocketFactory.createTorServerSocketToLocalServerSocketForward(80,
-		// 8080);
+		externalCom.startServer(8888);
 
 	}
 

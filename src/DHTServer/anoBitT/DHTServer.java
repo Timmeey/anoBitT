@@ -15,8 +15,6 @@ public class DHTServer {
 
 	public static void main(String[] args) throws Exception {
 
-		DHTServerJetty.start();
-
 		new Runnable() {
 
 			public void run() {

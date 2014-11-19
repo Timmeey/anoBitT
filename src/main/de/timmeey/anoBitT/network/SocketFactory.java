@@ -1,4 +1,4 @@
-package de.timmeey.anoBitT.network.portSocketForwarder;
+package de.timmeey.anoBitT.network;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -22,6 +22,7 @@ import timmeeyLib.exceptions.unchecked.NotYetInitializedException;
 @Singleton
 public class SocketFactory {
 	private TorHiddenServicePrivateNetAddress hiddenAddress;
+	private NetLayer netLayer;
 
 	@Inject
 	public SocketFactory() {
@@ -85,8 +86,8 @@ public class SocketFactory {
 					"Socketfactory is not yet initialized");
 		TorHiddenServicePortPrivateNetAddress netAddressWithPort = new TorHiddenServicePortPrivateNetAddress(
 				hiddenAddress, externalPort);
-		return (TorNetServerSocket) main.torNetLayer.createNetServerSocket(
-				null, netAddressWithPort);
+		return (TorNetServerSocket) this.netLayer.createNetServerSocket(null,
+				netAddressWithPort);
 	}
 
 	/**
@@ -107,7 +108,7 @@ public class SocketFactory {
 					"Socketfactory is not yet initialized");
 		TcpipNetAddress remoteAddress = new TcpipNetAddress(remoteHostname,
 				remotePort);
-		NetSocket netSocket = main.torNetLayer.createNetSocket(null, null,
+		NetSocket netSocket = this.netLayer.createNetSocket(null, null,
 				remoteAddress);
 		return new PrivateSocket(netSocket);
 	}
@@ -126,6 +127,11 @@ public class SocketFactory {
 	public NonPrivateSocket createNonPrivateSocket(String remoteHostname,
 			int remotePort) throws UnknownHostException, IOException {
 		return new NonPrivateSocket(remoteHostname, remotePort);
+
+	}
+
+	public void setNetLayer(NetLayer torNetLayer) {
+		this.netLayer = torNetLayer;
 
 	}
 }

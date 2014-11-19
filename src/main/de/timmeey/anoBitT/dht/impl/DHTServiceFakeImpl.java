@@ -1,0 +1,95 @@
+package de.timmeey.anoBitT.dht.impl;
+
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import anoBitT.DHTGetRequest;
+import anoBitT.DHTPutRequest;
+import anoBitT.DHTReply;
+
+import com.google.inject.Inject;
+
+import timmeeyLib.exceptions.unchecked.NotYetImplementedException;
+import timmeeyLib.properties.PropertiesAccessor;
+import de.timmeey.anoBitT.communication.HTTPRequestService;
+import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
+import de.timmeey.anoBitT.dht.DHTService;
+import de.timmeey.anoBitT.network.SocketFactory;
+
+public class DHTServiceFakeImpl implements DHTService {
+
+	private final SocketFactory socketFactory;
+	private final PropertiesAccessor props;
+	private final HTTPRequestService requestService;
+
+	@Inject
+	protected DHTServiceFakeImpl(SocketFactory socketFactory,
+			@DHTProperties PropertiesAccessor props,
+			HTTPRequestService requestService) {
+		this.props = props;
+		this.socketFactory = socketFactory;
+		this.requestService = requestService;
+
+	}
+
+	@Override
+	public boolean put(String key, String value, boolean waitForConfirmation) {
+		boolean result = !waitForConfirmation;
+		DHTPutRequest putRequest = new DHTPutRequest(
+				props.getProperty("DHTHostname"), key, value);
+		Future<DHTReply> putReply = requestService.send(putRequest,
+				putRequest.getResponseType());
+		if (waitForConfirmation) {
+			DHTReply realReply;
+			try {
+				realReply = putReply.get(15, TimeUnit.SECONDS);
+				result = realReply.getKey().equals(key)
+						&& realReply.getValue().equals(value);
+
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+
+			} catch (ExecutionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (TimeoutException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+		}
+		return result;
+	}
+
+	public String get(String key) {
+		String result = null;
+		DHTGetRequest getRequest = new DHTGetRequest(
+				props.getProperty("DHTHostname"), key);
+
+		Future<DHTReply> getReply = requestService.send(getRequest,
+				getRequest.getResponseType());
+		try {
+			result = getReply.get(15, TimeUnit.SECONDS).getValue();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TimeoutException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return result;
+	}
+
+	public List<String> getNodes() {
+		throw new NotYetImplementedException(
+				"In this implementation of DHTService not available");
+	}
+}

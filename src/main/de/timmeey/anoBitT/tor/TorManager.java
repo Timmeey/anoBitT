@@ -25,8 +25,8 @@ import com.google.inject.Singleton;
 import de.timmeey.anoBitT.main;
 import de.timmeey.anoBitT.config.GuiceAnnotations.TorProperties;
 import de.timmeey.anoBitT.exceptions.NotAnonymException;
-import de.timmeey.anoBitT.network.portSocketForwarder.SocketFactory;
-import de.timmeey.anoBitT.network.portSocketForwarder.UrlFactory;
+import de.timmeey.anoBitT.network.SocketFactory;
+import de.timmeey.anoBitT.network.UrlFactory;
 
 @Singleton
 public class TorManager {
@@ -104,6 +104,7 @@ public class TorManager {
 		NameServiceGlobalUtil.setIpNetAddressNameService(ns);
 
 		sockFac.setHiddenAddress(hiddenAddress);
+		sockFac.setNetLayer(torNetLayer);
 
 		this.keyPair = new KeyPair(hiddenAddress.getPublicKey().toString(),
 				hiddenAddress.getPrivateKey().toString(),
@@ -113,12 +114,13 @@ public class TorManager {
 				true);
 		this.urlFactory.setNetlibStreamHandlerFactory(tmp);
 		tmp.setNetLayerForHttpHttpsFtp(torNetLayer);
-		if (anonymSelfTest()) {
+		if (!anonymSelfTest()) {
 			return this;
 		} else {
 			// Something went terribly wrong here. We are not communicating
 			// anonymous
 			sockFac.setHiddenAddress(null);
+			sockFac.setNetLayer(null);
 			this.keyPair = null;
 			throw new NotAnonymException();
 		}
@@ -146,10 +148,6 @@ public class TorManager {
 		System.out.println("Private ip: " + privateIp);
 		return false;
 		// return !(ip.equalsIgnoreCase(privateIp));
-	}
-
-	public NetLayer getNetLayer() {
-		return torNetLayer;
 	}
 
 }

@@ -10,11 +10,11 @@ import java.util.List;
  *
  */
 public interface DHTService {
-	
-	public DHTService put(String key, String value);
-	
+
+	public boolean put(String key, String value, boolean waitForConfirmation);
+
 	public String get(String key);
-	
+
 	public List<String> getNodes();
 
 }

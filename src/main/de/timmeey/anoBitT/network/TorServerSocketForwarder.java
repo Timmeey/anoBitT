@@ -1,4 +1,4 @@
-package de.timmeey.anoBitT.network.portSocketForwarder;
+package de.timmeey.anoBitT.network;
 
 /** 
  * This program is an example from the book "Internet 

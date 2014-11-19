@@ -1,4 +1,4 @@
-package de.timmeey.anoBitT.network.portSocketForwarder;
+package de.timmeey.anoBitT.network;
 
 import java.io.IOException;
 import java.io.InputStream;

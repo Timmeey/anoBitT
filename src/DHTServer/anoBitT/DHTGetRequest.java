@@ -1,13 +1,14 @@
 package anoBitT;
 
-import de.timmeey.anoBitT.http.communication.HTTPRequest;
+import de.timmeey.anoBitT.communication.HTTPRequest;
 
 public class DHTGetRequest extends HTTPRequest<DHTReply> {
+	public final static String path = "dht-service/get";
 
 	private final String key;
 
-	protected DHTGetRequest(String key) {
-		super(DHTReply.class);
+	public DHTGetRequest(String key, String host) {
+		super(host, path, DHTReply.class);
 		this.key = key;
 	}
 

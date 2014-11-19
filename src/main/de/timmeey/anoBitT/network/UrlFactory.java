@@ -1,4 +1,4 @@
-package de.timmeey.anoBitT.network.portSocketForwarder;
+package de.timmeey.anoBitT.network;
 
 import java.net.MalformedURLException;
 import java.net.URL;

@@ -19,7 +19,8 @@ public class PeerGroupApplicationOffer {
 		this.created = System.currentTimeMillis();
 		this.duration = duration;
 		this.dhtService = dhtService;
-		this.dhtService.put(getSecretOneTimePasswordHash(), ownOnionAddress);
+		this.dhtService.put(getSecretOneTimePasswordHash(), ownOnionAddress,
+				false);
 
 	}
 
