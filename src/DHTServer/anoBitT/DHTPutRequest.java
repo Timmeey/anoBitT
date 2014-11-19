@@ -9,7 +9,7 @@ import com.sun.net.httpserver.HttpServer;
 import de.timmeey.anoBitT.communication.HTTPRequest;
 
 public class DHTPutRequest extends HTTPRequest<DHTReply> {
-	private final static String path = "/dht-service/put";
+	transient private final static String path = "/dht-service/put";
 	final String key;
 	final String value;
 
@@ -35,14 +35,7 @@ public class DHTPutRequest extends HTTPRequest<DHTReply> {
 	 * 
 	 * @param server
 	 */
-	public static void addHandler(HttpServer server) {
-		server.createContext(path, new HttpHandler() {
-
-			@Override
-			public void handle(HttpExchange exchange) throws IOException {
-				// TODO Auto-generated method stub
-
-			}
-		});
+	public static void addHandler(HttpServer server, HttpHandler handler) {
+		server.createContext(path, handler);
 	}
 }

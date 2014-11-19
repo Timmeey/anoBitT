@@ -66,13 +66,6 @@ public class AnonBitTModule extends AbstractModule {
 
 			bind(DHTService.class).to(DHTServiceFakeImpl.class);
 
-			bind(Integer.class).annotatedWith(HttpExternalServerPort.class)
-					.toInstance(
-							Integer.parseInt(PropertiesFactory
-									.getPropertiesAccessor("app").getProperty(
-											"externalHttpCommunicationPort",
-											"62752")));
-
 		} catch (NotYetInitializedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

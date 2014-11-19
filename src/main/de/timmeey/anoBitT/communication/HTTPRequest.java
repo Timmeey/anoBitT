@@ -3,9 +3,9 @@ package de.timmeey.anoBitT.communication;
 import java.lang.reflect.Type;
 
 public abstract class HTTPRequest<T extends HTTPResponse> {
-	final Class<T> type;
-	final String host;
-	final String path;
+	transient final Class<T> type;
+	transient final String host;
+	transient final String path;
 
 	protected HTTPRequest(String host, String path, Class<T> type) {
 		this.host = host;

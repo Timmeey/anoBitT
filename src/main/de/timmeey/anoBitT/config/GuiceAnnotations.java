@@ -45,6 +45,12 @@ public class GuiceAnnotations {
 	@BindingAnnotation
 	@Target({ FIELD, PARAMETER, METHOD })
 	@Retention(RUNTIME)
+	public @interface DHTExternalPort {
+	}
+
+	@BindingAnnotation
+	@Target({ FIELD, PARAMETER, METHOD })
+	@Retention(RUNTIME)
 	public @interface HttpInternalServerPort {
 	}
 

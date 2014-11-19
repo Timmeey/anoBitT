@@ -1,8 +1,10 @@
 package de.timmeey.anoBitT.communication.impl;
 
+import java.beans.DesignMode;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
@@ -21,6 +23,7 @@ import com.google.inject.Singleton;
 import de.timmeey.anoBitT.communication.HTTPRequest;
 import de.timmeey.anoBitT.communication.HTTPRequestService;
 import de.timmeey.anoBitT.communication.HTTPResponse;
+import de.timmeey.anoBitT.config.GuiceAnnotations.DHTExternalPort;
 import de.timmeey.anoBitT.config.GuiceAnnotations.HTTPRequestExecutor;
 import de.timmeey.anoBitT.config.GuiceAnnotations.HttpExternalServerPort;
 import de.timmeey.anoBitT.network.SocketFactory;
@@ -53,24 +56,28 @@ public class HTTPRequestHandlerImpl implements HTTPRequestService {
 	@Override
 	public <T extends HTTPResponse> Future<T> send(HTTPRequest<?> request,
 			Class<T> clazz) {
+		return send(request, clazz, httpRequestServerPort);
+
+	}
+
+	public <T extends HTTPResponse> Future<T> send(HTTPRequest<?> request,
+			Class<T> clazz, int port) {
 		Callable<T> call = new Callable<T>() {
 
 			public T call() throws Exception {
 				// Thread.sleep(4000);
 				return gson.fromJson(
 						doPost(request.getHost(), request.getPath(),
-								serializeHTTPRequest(request)), clazz);
+								serializeHTTPRequest(request), port), clazz);
 			}
 		};
 		return execPool.submit(call);
-
 	}
 
-	private String doPost(String host, String path, String data)
+	private String doPost(String host, String path, String data, int port)
 			throws IOException {
-		try (// Socket socket = this.socketFactory.createPrivateSocket(host,
-				// 8080);
-		Socket socket = new Socket(host, httpRequestServerPort);
+		System.out.println("Posting " + data + "to " + host + path);
+		try (Socket socket = this.socketFactory.createPrivateSocket(host, port);
 				BufferedWriter wr = new BufferedWriter(new OutputStreamWriter(
 						socket.getOutputStream(), "UTF8"));
 				BufferedReader rd = new BufferedReader(new InputStreamReader(
@@ -85,12 +92,16 @@ public class HTTPRequestHandlerImpl implements HTTPRequestService {
 
 			wr.write(data);
 			wr.flush();
+			wr.close();
 
 			String part;
 			String response = "";
+			System.out.println("Waiting for raw response");
 			while ((part = rd.readLine()) != null) {
+				System.out.println(part);
 				response += part;
 			}
+			System.out.println("Read raw response");
 			return response;
 		}
 
@@ -134,11 +145,18 @@ public class HTTPRequestHandlerImpl implements HTTPRequestService {
 	 */
 	@Override
 	public String serializeHTTPResponse(HTTPResponse req) {
+		System.out.println(req);
 		return gson.toJson(req);
 	}
 
 	private <T extends HTTPResponse> T deserializeResponse(String string,
 			Class<T> clazz) {
 		return gson.fromJson(string, clazz);
+	}
+
+	@Override
+	public <T extends HTTPRequest<?>> T deserializeRequest(InputStream input,
+			Class<T> clazz) {
+		return this.deserializeRequest(new InputStreamReader(input), clazz);
 	}
 }

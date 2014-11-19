@@ -11,6 +11,7 @@ import com.google.inject.Injector;
 
 import de.timmeey.anoBitT.communication.external.ExternalCommunicationHandler;
 import de.timmeey.anoBitT.config.AnonBitTModule;
+import de.timmeey.anoBitT.config.DefaultsConfigModule;
 import de.timmeey.anoBitT.tor.TorManager;
 
 public class main {
@@ -19,7 +20,8 @@ public class main {
 	public static void main(String[] args) throws Exception {
 		firstConf();
 
-		Injector injector = Guice.createInjector(new AnonBitTModule());
+		Injector injector = Guice.createInjector(new AnonBitTModule(),
+				new DefaultsConfigModule());
 
 		/*
 		 * Now that we've got the injector, we can build objects.

@@ -15,6 +15,7 @@ import com.google.inject.Inject;
 import timmeeyLib.exceptions.unchecked.NotYetImplementedException;
 import timmeeyLib.properties.PropertiesAccessor;
 import de.timmeey.anoBitT.communication.HTTPRequestService;
+import de.timmeey.anoBitT.config.GuiceAnnotations.DHTExternalPort;
 import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
 import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.network.SocketFactory;
@@ -24,14 +25,17 @@ public class DHTServiceFakeImpl implements DHTService {
 	private final SocketFactory socketFactory;
 	private final PropertiesAccessor props;
 	private final HTTPRequestService requestService;
+	private final int dhtRequestServerPort;
 
 	@Inject
 	protected DHTServiceFakeImpl(SocketFactory socketFactory,
 			@DHTProperties PropertiesAccessor props,
-			HTTPRequestService requestService) {
+			HTTPRequestService requestService,
+			@DHTExternalPort int dhtRequestServerPort) {
 		this.props = props;
 		this.socketFactory = socketFactory;
 		this.requestService = requestService;
+		this.dhtRequestServerPort = dhtRequestServerPort;
 
 	}
 
@@ -41,11 +45,12 @@ public class DHTServiceFakeImpl implements DHTService {
 		DHTPutRequest putRequest = new DHTPutRequest(
 				props.getProperty("DHTHostname"), key, value);
 		Future<DHTReply> putReply = requestService.send(putRequest,
-				putRequest.getResponseType());
+				putRequest.getResponseType(), dhtRequestServerPort);
+		System.out.println("done");
 		if (waitForConfirmation) {
 			DHTReply realReply;
 			try {
-				realReply = putReply.get(15, TimeUnit.SECONDS);
+				realReply = putReply.get();
 				result = realReply.getKey().equals(key)
 						&& realReply.getValue().equals(value);
 
@@ -56,10 +61,10 @@ public class DHTServiceFakeImpl implements DHTService {
 			} catch (ExecutionException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			} catch (TimeoutException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			} // catch (TimeoutException e) {
+				// // TODO Auto-generated catch block
+				// e.printStackTrace();
+				// }
 
 		}
 		return result;
@@ -71,9 +76,9 @@ public class DHTServiceFakeImpl implements DHTService {
 				props.getProperty("DHTHostname"), key);
 
 		Future<DHTReply> getReply = requestService.send(getRequest,
-				getRequest.getResponseType());
+				getRequest.getResponseType(), dhtRequestServerPort);
 		try {
-			result = getReply.get(15, TimeUnit.SECONDS).getValue();
+			result = getReply.get(300, TimeUnit.SECONDS).getValue();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
