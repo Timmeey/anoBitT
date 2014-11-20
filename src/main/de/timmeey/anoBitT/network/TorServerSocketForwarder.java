@@ -19,14 +19,14 @@ import java.io.*;
 import java.net.*;
 
 import org.silvertunnel_ng.netlib.api.NetSocket;
+import org.silvertunnel_ng.netlib.api.impl.Socket2NetSocket;
 import org.silvertunnel_ng.netlib.layer.tor.TorNetServerSocket;
 
 public class TorServerSocketForwarder extends Thread {
-	private TorNetServerSocket torSocket;
+	private ServerSocket torSocket;
 	private int localHostPort;
 
-	protected TorServerSocketForwarder(TorNetServerSocket torSocket,
-			int localhostPort) {
+	protected TorServerSocketForwarder(ServerSocket torSocket, int localhostPort) {
 		this.torSocket = torSocket;
 		this.localHostPort = localhostPort;
 		this.start();
@@ -35,9 +35,12 @@ public class TorServerSocketForwarder extends Thread {
 
 	public void run() {
 		while (true) {
-			NetSocket clientSocket;
+			Socket clientSocket;
 			try {
+				System.out.println("Waiting to accept");
 				clientSocket = torSocket.accept();
+
+				System.out.println("Accepted");
 				ClientThread clientThread = new ClientThread(clientSocket,
 						localHostPort);
 				clientThread.start();
@@ -56,12 +59,12 @@ public class TorServerSocketForwarder extends Thread {
 	 * is bidirectional and is performed by two ForwardThread instances.
 	 */
 	class ClientThread extends Thread {
-		private NetSocket mClientSocket;
+		private Socket mClientSocket;
 		private int localhostServerPort;
 		private Socket mServerSocket;
-		private boolean mForwardingActive = false;
+		private boolean mForwardingActive = true;
 
-		public ClientThread(NetSocket clientSocket, int localhostServerPort) {
+		public ClientThread(Socket clientSocket, int localhostServerPort) {
 			mClientSocket = clientSocket;
 			this.localhostServerPort = localhostServerPort;
 		}
@@ -78,10 +81,11 @@ public class TorServerSocketForwarder extends Thread {
 			try {
 				// Connect to the destination server
 				mServerSocket = new Socket("localhost", localhostServerPort);
+				mServerSocket.setSoTimeout(0);
 
 				// // Turn on keep-alive for both the sockets
-				// mServerSocket.setKeepAlive(true);
-				// mClientSocket.setKeepAlive(true);
+				mServerSocket.setKeepAlive(true);
+				mClientSocket.setKeepAlive(true);
 
 				// Obtain client & server input & output streams
 				clientIn = mClientSocket.getInputStream();
@@ -98,10 +102,10 @@ public class TorServerSocketForwarder extends Thread {
 			// Start forwarding data between server and client
 			mForwardingActive = true;
 			ForwardThread clientForward = new ForwardThread(this, clientIn,
-					serverOut);
+					serverOut, true);
 			clientForward.start();
 			ForwardThread serverForward = new ForwardThread(this, serverIn,
-					clientOut);
+					clientOut, false);
 			serverForward.start();
 
 		}
@@ -114,6 +118,7 @@ public class TorServerSocketForwarder extends Thread {
 		 * and to finish their execution.
 		 */
 		public synchronized void connectionBroken() {
+			System.out.println("Closing forwarding socket");
 			try {
 				mServerSocket.close();
 			} catch (Exception e) {
@@ -142,15 +147,18 @@ public class TorServerSocketForwarder extends Thread {
 		OutputStream mOutputStream;
 		ClientThread mParent;
 
+		private boolean isClient;
+
 		/**
 		 * Creates a new traffic redirection thread specifying its parent, input
 		 * stream and output stream.
 		 */
 		public ForwardThread(ClientThread aParent, InputStream aInputStream,
-				OutputStream aOutputStream) {
+				OutputStream aOutputStream, boolean isClient) {
 			mParent = aParent;
 			mInputStream = aInputStream;
 			mOutputStream = aOutputStream;
+			this.isClient = isClient;
 		}
 
 		/**
@@ -160,16 +168,20 @@ public class TorServerSocketForwarder extends Thread {
 		 */
 		public void run() {
 			byte[] buffer = new byte[BUFFER_SIZE];
-			try {
-				while (true) {
-					int bytesRead = mInputStream.read(buffer);
+			int bytesRead = -1;
+
+			while (true) {
+				try {
+					bytesRead = mInputStream.read(buffer);
 					if (bytesRead == -1)
 						break; // End of stream is reached --> exit
+
 					mOutputStream.write(buffer, 0, bytesRead);
 					mOutputStream.flush();
+				} catch (IOException e) {
+
 				}
-			} catch (IOException e) {
-				// Read/write failed --> connection is broken
+
 			}
 
 			// Notify parent thread that the connection is broken

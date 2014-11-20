@@ -1,9 +1,8 @@
 package anoBitT;
 
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
-
 import de.timmeey.anoBitT.communication.HTTPRequest;
+import de.timmeey.anoBitT.communication.httpServer.HttpHandler;
+import de.timmeey.anoBitT.communication.httpServer.TimmeeyHttpSimpleServer;
 
 public class DHTGetRequest extends HTTPRequest<DHTReply> {
 	transient public final static String path = "/dht-service/get";
@@ -19,8 +18,9 @@ public class DHTGetRequest extends HTTPRequest<DHTReply> {
 		return key;
 	}
 
-	public static void addHandler(HttpServer server, HttpHandler handler) {
-		server.createContext(path, handler);
+	public static void addHandler(TimmeeyHttpSimpleServer server,
+			HttpHandler handler) {
+		server.registerHandler(path, handler);
 	}
 
 }

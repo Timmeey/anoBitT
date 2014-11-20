@@ -2,11 +2,9 @@ package anoBitT;
 
 import java.io.IOException;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
-
 import de.timmeey.anoBitT.communication.HTTPRequest;
+import de.timmeey.anoBitT.communication.httpServer.HttpHandler;
+import de.timmeey.anoBitT.communication.httpServer.TimmeeyHttpSimpleServer;
 
 public class DHTPutRequest extends HTTPRequest<DHTReply> {
 	transient private final static String path = "/dht-service/put";
@@ -35,7 +33,8 @@ public class DHTPutRequest extends HTTPRequest<DHTReply> {
 	 * 
 	 * @param server
 	 */
-	public static void addHandler(HttpServer server, HttpHandler handler) {
-		server.createContext(path, handler);
+	public static void addHandler(TimmeeyHttpSimpleServer server,
+			HttpHandler handler) {
+		server.registerHandler(path, handler);
 	}
 }

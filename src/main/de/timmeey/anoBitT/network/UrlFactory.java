@@ -2,39 +2,24 @@ package de.timmeey.anoBitT.network;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLStreamHandler;
 
 import org.silvertunnel_ng.netlib.adapter.url.NetlibURLStreamHandlerFactory;
 
-import timmeeyLib.exceptions.unchecked.NotYetInitializedException;
+public interface UrlFactory {
 
-import com.google.inject.Singleton;
+	public abstract void setNetlibStreamHandlerFactory(
+			NetlibURLStreamHandlerFactory netlibStreamHandlerFactory);
 
-@Singleton
-public class UrlFactory {
-	private NetlibURLStreamHandlerFactory netlibStreamHandlerFactory;
+	public abstract URL getNonPrivateURL(String urlStr)
+			throws MalformedURLException;
 
-	UrlFactory() {
-		netlibStreamHandlerFactory = null;
-	}
+	public abstract URL getNonPrivateURL(String urlStr, boolean keepAlive)
+			throws MalformedURLException;
 
-	public void setNetlibStreamHandlerFactory(
-			NetlibURLStreamHandlerFactory netlibStreamHandlerFactory) {
-		this.netlibStreamHandlerFactory = netlibStreamHandlerFactory;
-	}
+	public abstract URL getPrivateURL(String urlStr, boolean keepAlive)
+			throws MalformedURLException;
 
-	public URL getNonPrivateURL(String urlStr) throws MalformedURLException {
-		return new URL(urlStr);
-	}
+	public abstract URL getPrivateURL(String urlStr)
+			throws MalformedURLException;
 
-	public URL getPrivateURL(String urlStr) throws MalformedURLException {
-		if (this.netlibStreamHandlerFactory == null) {
-			throw new NotYetInitializedException();
-		}
-		URLStreamHandler handler = this.netlibStreamHandlerFactory
-				.createURLStreamHandler(new URL(urlStr).getProtocol());
-		URL context = null;
-		URL url = new URL(context, urlStr, handler);
-		return url;
-	}
 }

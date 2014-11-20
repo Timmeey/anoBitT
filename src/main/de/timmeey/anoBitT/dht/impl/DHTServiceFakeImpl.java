@@ -44,13 +44,16 @@ public class DHTServiceFakeImpl implements DHTService {
 		boolean result = !waitForConfirmation;
 		DHTPutRequest putRequest = new DHTPutRequest(
 				props.getProperty("DHTHostname"), key, value);
+
+		// DHTPutRequest putRequest = new DHTPutRequest("localhost", key,
+		// value);
 		Future<DHTReply> putReply = requestService.send(putRequest,
 				putRequest.getResponseType(), dhtRequestServerPort);
 		System.out.println("done");
 		if (waitForConfirmation) {
 			DHTReply realReply;
 			try {
-				realReply = putReply.get();
+				realReply = putReply.get(60, TimeUnit.SECONDS);
 				result = realReply.getKey().equals(key)
 						&& realReply.getValue().equals(value);
 
@@ -65,6 +68,10 @@ public class DHTServiceFakeImpl implements DHTService {
 				// // TODO Auto-generated catch block
 				// e.printStackTrace();
 				// }
+			catch (TimeoutException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
 		}
 		return result;
@@ -74,11 +81,12 @@ public class DHTServiceFakeImpl implements DHTService {
 		String result = null;
 		DHTGetRequest getRequest = new DHTGetRequest(
 				props.getProperty("DHTHostname"), key);
+		// DHTGetRequest getRequest = new DHTGetRequest("localhost", key);
 
 		Future<DHTReply> getReply = requestService.send(getRequest,
 				getRequest.getResponseType(), dhtRequestServerPort);
 		try {
-			result = getReply.get(300, TimeUnit.SECONDS).getValue();
+			result = getReply.get(60, TimeUnit.SECONDS).getValue();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -1,12 +1,19 @@
 package de.timmeey.anoBitT.network;
 
 import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.silvertunnel_ng.netlib.api.NetFactory;
 import org.silvertunnel_ng.netlib.api.NetLayer;
 import org.silvertunnel_ng.netlib.api.NetLayerIDs;
 import org.silvertunnel_ng.netlib.api.NetSocket;
+import org.silvertunnel_ng.netlib.api.impl.NetServerSocket2ServerSocket;
+import org.silvertunnel_ng.netlib.api.impl.NetSocket2Socket;
+import org.silvertunnel_ng.netlib.api.impl.Socket2NetSocket;
 import org.silvertunnel_ng.netlib.api.util.TcpipNetAddress;
 import org.silvertunnel_ng.netlib.layer.tor.TorHiddenServicePortPrivateNetAddress;
 import org.silvertunnel_ng.netlib.layer.tor.TorHiddenServicePrivateNetAddress;
@@ -23,6 +30,7 @@ import timmeeyLib.exceptions.unchecked.NotYetInitializedException;
 public class SocketFactory {
 	private TorHiddenServicePrivateNetAddress hiddenAddress;
 	private NetLayer netLayer;
+	private final Map<String, Socket> openConnections = new ConcurrentHashMap<String, Socket>();
 
 	@Inject
 	public SocketFactory() {
@@ -37,11 +45,6 @@ public class SocketFactory {
 		this.hiddenAddress = hiddenAddress;
 		return this;
 	}
-
-	// public SocketFactory(TorHiddenServicePrivateNetAddress hiddenAddressConf)
-	// {
-	// hiddenAddress = hiddenAddressConf;
-	// }
 
 	/**
 	 * Creates a anonymous ServerSocket listening on the specified port. But
@@ -60,7 +63,7 @@ public class SocketFactory {
 	 *         to internal port
 	 * @throws IOException
 	 */
-	public TorServerSocketForwarder createTorServerSocketToLocalServerSocketForward(
+	public TorServerSocketForwarder createWrappedTorServerSocketToLocalServerSocketForward(
 			int externalPort, int internalLocalhostPort) throws IOException {
 		if (hiddenAddress == null)
 			throw new NotYetInitializedException(
@@ -68,6 +71,12 @@ public class SocketFactory {
 		return new TorServerSocketForwarder(
 				createTorServerSocket(externalPort), internalLocalhostPort);
 
+	}
+
+	public TorServerSocketForwarder createWrappedNonTorServerSocketToLocalServerSocketForward(
+			int externalPort, int internalPort) throws IOException {
+		return new TorServerSocketForwarder(new ServerSocket(externalPort),
+				internalPort);
 	}
 
 	/**
@@ -79,15 +88,28 @@ public class SocketFactory {
 	 * @return anonymous ServerSocket listening on the .onion address
 	 * @throws IOException
 	 */
-	public TorNetServerSocket createTorServerSocket(int externalPort)
+	public ServerSocket createTorServerSocket(int externalPort)
 			throws IOException {
 		if (hiddenAddress == null)
 			throw new NotYetInitializedException(
 					"Socketfactory is not yet initialized");
 		TorHiddenServicePortPrivateNetAddress netAddressWithPort = new TorHiddenServicePortPrivateNetAddress(
 				hiddenAddress, externalPort);
-		return (TorNetServerSocket) this.netLayer.createNetServerSocket(null,
-				netAddressWithPort);
+		return new NetServerSocket2ServerSocket(
+				this.netLayer.createNetServerSocket(null, netAddressWithPort));
+	}
+
+	/**
+	 * Creates a not anonymous ServerSocket
+	 * 
+	 * @param externalPort
+	 *            the external port
+	 * @return aServerSocket
+	 * @throws IOException
+	 */
+	public ServerSocket createNonTorServerSocket(int externalPort)
+			throws IOException {
+		return new ServerSocket(externalPort);
 	}
 
 	/**
@@ -101,16 +123,27 @@ public class SocketFactory {
 	 * @return anonymous Socket
 	 * @throws IOException
 	 */
-	public PrivateSocket createPrivateSocket(String remoteHostname,
-			int remotePort) throws IOException {
+	public Socket getPrivateSocket(String remoteHostname, int remotePort)
+			throws IOException {
 		if (hiddenAddress == null)
 			throw new NotYetInitializedException(
 					"Socketfactory is not yet initialized");
-		TcpipNetAddress remoteAddress = new TcpipNetAddress(remoteHostname,
-				remotePort);
-		NetSocket netSocket = this.netLayer.createNetSocket(null, null,
-				remoteAddress);
-		return new PrivateSocket(netSocket);
+
+		Socket socket = getSocketIfAlreadyExisting(remoteHostname, remotePort);
+
+		if (socket == null) {
+			TcpipNetAddress remoteAddress = new TcpipNetAddress(remoteHostname,
+					remotePort);
+			NetSocket netSocket = this.netLayer.createNetSocket(null, null,
+					remoteAddress);
+			socket = new NetSocket2Socket(netSocket);
+			socket.setKeepAlive(true);
+			socket.setSoTimeout(1000 * 60 * 10);
+
+		}
+		cacheSocket(socket, remoteHostname, remotePort);
+		return socket;
+
 	}
 
 	/**
@@ -124,14 +157,33 @@ public class SocketFactory {
 	 * @throws UnknownHostException
 	 * @throws IOException
 	 */
-	public NonPrivateSocket createNonPrivateSocket(String remoteHostname,
-			int remotePort) throws UnknownHostException, IOException {
-		return new NonPrivateSocket(remoteHostname, remotePort);
+	public Socket getNonPrivateSocket(String remoteHostname, int remotePort)
+			throws UnknownHostException, IOException {
+		Socket socket = getSocketIfAlreadyExisting(remoteHostname, remotePort);
+		if (socket == null) {
+			socket = new Socket(remoteHostname, remotePort);
+
+		}
+		cacheSocket(socket, remoteHostname, remotePort);
+		return new Socket(remoteHostname, remotePort);
 
 	}
 
 	public void setNetLayer(NetLayer torNetLayer) {
 		this.netLayer = torNetLayer;
 
+	}
+
+	private Socket getSocketIfAlreadyExisting(String host, int port) {
+		Socket socket = openConnections.get(host + ":" + port);
+		if (socket != null && !socket.isClosed()) {
+			System.out.println("Found cached socket, reusing it");
+			return socket;
+		}
+		return null;
+	}
+
+	private void cacheSocket(Socket socket, String host, int port) {
+		openConnections.put(host + ":" + port, socket);
 	}
 }

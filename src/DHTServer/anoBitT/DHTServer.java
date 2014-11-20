@@ -1,29 +1,22 @@
 package anoBitT;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.concurrent.ConcurrentHashMap;
 
-import timmeeyLib.properties.PropertiesAccessor;
 import timmeeyLib.properties.PropertiesFactory;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
 
 import de.timmeey.anoBitT.communication.HTTPRequestService;
-import de.timmeey.anoBitT.communication.external.ExternalCommunicationHandler;
+import de.timmeey.anoBitT.communication.httpServer.HttpContext;
+import de.timmeey.anoBitT.communication.httpServer.HttpHandler;
+import de.timmeey.anoBitT.communication.httpServer.TimmeeyHttpSimpleServer;
 import de.timmeey.anoBitT.config.AnonBitTModule;
 import de.timmeey.anoBitT.config.DefaultsConfigModule;
 import de.timmeey.anoBitT.config.GuiceAnnotations.DHTExternalPort;
-import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
 import de.timmeey.anoBitT.network.SocketFactory;
 import de.timmeey.anoBitT.tor.TorManager;
 
@@ -33,8 +26,8 @@ public class DHTServer {
 	private static final Object readLock = new Object();
 	private static final Object writeLock = new Object();
 
-	private static final long minRetention = 5000; // 1 hour
-	private static final long cleanupPeriod = 1000; // 1 Minute
+	private static final long minRetention = 1000 * 60 * 2; // 1 hour
+	private static final long cleanupPeriod = 1000 * 60 * 1; // 1 Minute
 
 	public static void main(String[] args) throws Exception {
 		PropertiesFactory.setConfDir("anonBit");
@@ -50,60 +43,44 @@ public class DHTServer {
 		System.out.println("Startin tor");
 		tor.startTor();
 		System.out.println("Tor started");
-		HTTPRequestService serializerService = injector
-				.getInstance(HTTPRequestService.class);
 
 		SocketFactory socketFactory = injector.getInstance(SocketFactory.class);
 
-		HttpServer dhtFakeServiceServer = injector
-				.getInstance(HttpServer.class);
 		int dhtExternalPort = injector.getInstance(Key.get(Integer.class,
 				DHTExternalPort.class));
 
-		dhtFakeServiceServer.bind(new InetSocketAddress("localhost",
-				dhtExternalPort - 1), 0);
-		socketFactory.createTorServerSocketToLocalServerSocketForward(
-				dhtExternalPort, dhtExternalPort - 1);
-		dhtFakeServiceServer.start();
-		DHTGetRequest.addHandler(dhtFakeServiceServer, new HttpHandler() {
+		TimmeeyHttpSimpleServer server = injector
+				.getInstance(TimmeeyHttpSimpleServer.class);
+		ServerSocket serverSocket = socketFactory
+				.createTorServerSocket(dhtExternalPort);
+		server.setServerSocket(serverSocket);
+		System.out.println("ready");
+
+		DHTGetRequest.addHandler(server, new HttpHandler() {
 
 			@Override
-			public void handle(HttpExchange exchange) throws IOException {
-				System.out.println("get request");
-				DHTGetRequest request = serializerService.deserializeRequest(
-						exchange.getRequestBody(), DHTGetRequest.class);
+			public HttpContext handle(HttpContext ctx) {
+				System.out.println("Get request");
+				DHTGetRequest request = ctx.getPayload(DHTGetRequest.class);
 				String value = getValue(request.getKey());
 
-				String serialized = serializerService
-						.serializeHTTPResponse(new DHTReply(request.getKey(),
-								value));
-				System.out.println("Writing get output " + serialized);
-				exchange.sendResponseHeaders(200, serialized.length());
-				OutputStreamWriter writer = new OutputStreamWriter(exchange
-						.getResponseBody());
-				writer.write(serialized);
-				writer.flush();
-				writer.close();
-				// exchange.close();
+				ctx.setResponse(new DHTReply(request.getKey(), value));
+				return ctx;
+
 			}
 		});
 
-		DHTPutRequest.addHandler(dhtFakeServiceServer, new HttpHandler() {
+		DHTPutRequest.addHandler(server, new HttpHandler() {
 
 			@Override
-			public void handle(HttpExchange exchange) throws IOException {
-				System.out.println("Handle put");
-				DHTPutRequest request = serializerService.deserializeRequest(
-						exchange.getRequestBody(), DHTPutRequest.class);
-				putValue(request.getKey(), request.getValue());
+			public HttpContext handle(HttpContext ctx) {
+				System.out.println("Put request");
+				DHTPutRequest put = ctx.getPayload(DHTPutRequest.class);
+				putValue(put.getKey(), put.getValue());
 
-				String serialized = serializerService
-						.serializeHTTPResponse(new DHTReply(request.getKey(),
-								request.getValue()));
-				System.out.println("writing put output");
-				new OutputStreamWriter(exchange.getResponseBody())
-						.write(serialized);
-				exchange.close();
+				ctx.setResponse(new DHTReply(put.getKey(), put.getValue()));
+				return ctx;
+
 			}
 		});
 
@@ -123,7 +100,7 @@ public class DHTServer {
 				}
 
 			}
-		}.run();
+		};// .run();
 
 	}
 
@@ -156,7 +133,7 @@ public class DHTServer {
 		synchronized (writeLock) {
 			synchronized (readLock) {
 				int deleted = 0;
-				// System.out.println("Cleanup");
+				System.out.println("Cleanup");
 				long now = System.currentTimeMillis();
 				for (Iterator iterator = dht.keySet().iterator(); iterator
 						.hasNext();) {
@@ -169,7 +146,7 @@ public class DHTServer {
 					}
 
 				}
-				// System.out.println("Deleted: " + deleted);
+				System.out.println("Deleted: " + deleted);
 				Thread.sleep(1000);
 			}
 		}

@@ -139,8 +139,8 @@ public class TorManager {
 		String ip = in.readLine(); // you get the IP as a String
 		System.out.println("nonPrivate ip: " + ip);
 
-		URL whatIsMyPrivateIp = this.urlFactory
-				.getPrivateURL("http://checkip.amazonaws.com/");
+		URL whatIsMyPrivateIp = this.urlFactory.getPrivateURL(
+				"http://checkip.amazonaws.com/", false);
 		BufferedReader privateIn = new BufferedReader(new InputStreamReader(
 				whatIsMyPrivateIp.openStream()));
 

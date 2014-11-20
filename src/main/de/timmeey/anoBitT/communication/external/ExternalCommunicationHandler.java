@@ -37,8 +37,8 @@ public class ExternalCommunicationHandler {
 			throws IOException {
 		InetSocketAddress localhost = new InetSocketAddress("127.0.0.1", port);
 		server.bind(localhost, 0);
-		socketFactory.createTorServerSocketToLocalServerSocketForward(8888,
-				port);
+		socketFactory.createWrappedTorServerSocketToLocalServerSocketForward(
+				8888, port);
 		server.start();
 		return this;
 	}
