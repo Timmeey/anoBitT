@@ -1,4 +1,4 @@
-package de.timmeey.anoBitT.network;
+package de.timmeey.anoBitT.network.impl;
 
 /** 
  * This program is an example from the book "Internet 
@@ -22,11 +22,11 @@ import org.silvertunnel_ng.netlib.api.NetSocket;
 import org.silvertunnel_ng.netlib.api.impl.Socket2NetSocket;
 import org.silvertunnel_ng.netlib.layer.tor.TorNetServerSocket;
 
-public class TorServerSocketForwarder extends Thread {
+public class ServerSocketWrapper extends Thread {
 	private ServerSocket torSocket;
 	private int localHostPort;
 
-	protected TorServerSocketForwarder(ServerSocket torSocket, int localhostPort) {
+	protected ServerSocketWrapper(ServerSocket torSocket, int localhostPort) {
 		this.torSocket = torSocket;
 		this.localHostPort = localhostPort;
 		this.start();

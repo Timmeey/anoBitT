@@ -1,17 +1,16 @@
 package de.timmeey.anoBitT.communication.external;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 
 import timmeeyLib.properties.PropertiesAccessor;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
 
 import de.timmeey.anoBitT.communication.HTTPRequestService;
+import de.timmeey.anoBitT.communication.communicationServer.HttpHandler;
+import de.timmeey.anoBitT.communication.communicationServer.TimmeeyHttpSimpleServer;
+import de.timmeey.anoBitT.config.GuiceAnnotations.AnonSocketFactory;
 import de.timmeey.anoBitT.config.GuiceAnnotations.AppProperties;
 import de.timmeey.anoBitT.network.SocketFactory;
 
@@ -19,14 +18,15 @@ import de.timmeey.anoBitT.network.SocketFactory;
 public class ExternalCommunicationHandler {
 
 	private final HTTPRequestService serializer;
-	private final HttpServer server;
+	private final TimmeeyHttpSimpleServer server;
 	private final PropertiesAccessor props;
 	private final SocketFactory socketFactory;
 
 	@Inject
-	protected ExternalCommunicationHandler(HttpServer server,
+	protected ExternalCommunicationHandler(TimmeeyHttpSimpleServer server,
 			HTTPRequestService serializer,
-			@AppProperties PropertiesAccessor props, SocketFactory socketFactory) {
+			@AppProperties PropertiesAccessor props,
+			@AnonSocketFactory SocketFactory socketFactory) {
 		this.serializer = serializer;
 		this.server = server;
 		this.props = props;
@@ -35,27 +35,24 @@ public class ExternalCommunicationHandler {
 
 	public ExternalCommunicationHandler startServer(int port)
 			throws IOException {
-		InetSocketAddress localhost = new InetSocketAddress("127.0.0.1", port);
-		server.bind(localhost, 0);
-		socketFactory.createWrappedTorServerSocketToLocalServerSocketForward(
-				8888, port);
-		server.start();
+		server.setServerSocket(socketFactory.getServerSocket(port));
+
 		return this;
 	}
 
 	public ExternalCommunicationHandler stopServer(int tmOut) {
-		server.stop(tmOut);
+		server.stop();
 		return this;
 	}
 
 	public ExternalCommunicationHandler addHttpHandler(String path,
 			HttpHandler handler) {
-		server.createContext(path, handler);
+		server.registerHandler(path, handler);
 		return this;
 	}
 
 	public ExternalCommunicationHandler removeHttpHandler(String path) {
-		server.removeContext(path);
+		server.unregister(path);
 		return this;
 	}
 

@@ -15,27 +15,25 @@ import com.google.inject.Inject;
 import timmeeyLib.exceptions.unchecked.NotYetImplementedException;
 import timmeeyLib.properties.PropertiesAccessor;
 import de.timmeey.anoBitT.communication.HTTPRequestService;
-import de.timmeey.anoBitT.config.GuiceAnnotations.DHTExternalPort;
 import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
 import de.timmeey.anoBitT.dht.DHTService;
-import de.timmeey.anoBitT.network.SocketFactory;
+import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
 
 public class DHTServiceFakeImpl implements DHTService {
 
-	private final SocketFactory socketFactory;
+	private final SocketFactoryImpl socketFactory;
 	private final PropertiesAccessor props;
 	private final HTTPRequestService requestService;
-	private final int dhtRequestServerPort;
+	private final int DHTPort;
 
 	@Inject
-	protected DHTServiceFakeImpl(SocketFactory socketFactory,
+	protected DHTServiceFakeImpl(SocketFactoryImpl socketFactory,
 			@DHTProperties PropertiesAccessor props,
-			HTTPRequestService requestService,
-			@DHTExternalPort int dhtRequestServerPort) {
+			HTTPRequestService requestService) {
 		this.props = props;
 		this.socketFactory = socketFactory;
 		this.requestService = requestService;
-		this.dhtRequestServerPort = dhtRequestServerPort;
+		DHTPort = Integer.parseInt(props.getProperty("DHTPort", "62352"));
 
 	}
 
@@ -48,7 +46,7 @@ public class DHTServiceFakeImpl implements DHTService {
 		// DHTPutRequest putRequest = new DHTPutRequest("localhost", key,
 		// value);
 		Future<DHTReply> putReply = requestService.send(putRequest,
-				putRequest.getResponseType(), dhtRequestServerPort);
+				putRequest.getResponseType(), DHTPort);
 		System.out.println("done");
 		if (waitForConfirmation) {
 			DHTReply realReply;
@@ -84,7 +82,7 @@ public class DHTServiceFakeImpl implements DHTService {
 		// DHTGetRequest getRequest = new DHTGetRequest("localhost", key);
 
 		Future<DHTReply> getReply = requestService.send(getRequest,
-				getRequest.getResponseType(), dhtRequestServerPort);
+				getRequest.getResponseType(), DHTPort);
 		try {
 			result = getReply.get(60, TimeUnit.SECONDS).getValue();
 		} catch (InterruptedException e) {

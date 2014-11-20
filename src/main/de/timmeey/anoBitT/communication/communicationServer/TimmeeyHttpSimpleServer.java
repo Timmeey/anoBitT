@@ -1,4 +1,4 @@
-package de.timmeey.anoBitT.communication.httpServer;
+package de.timmeey.anoBitT.communication.communicationServer;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -101,5 +101,10 @@ public class TimmeeyHttpSimpleServer extends Thread {
 				}
 			}
 		}.start();
+	}
+
+	public void unregister(String path) {
+		handlerList.remove(path);
+		
 	}
 }

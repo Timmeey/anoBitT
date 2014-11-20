@@ -23,18 +23,19 @@ import com.google.inject.Singleton;
 
 import de.timmeey.anoBitT.config.GuiceAnnotations.TorProperties;
 import de.timmeey.anoBitT.exceptions.NotAnonymException;
-import de.timmeey.anoBitT.network.SocketFactory;
+import de.timmeey.anoBitT.network.impl.AnonSocketFactoryImpl;
 
 @Singleton
 public class TorManager {
 
 	private KeyPair keyPair;
 	private NetLayer torNetLayer;
-	private final SocketFactory sockFac;
+	private final AnonSocketFactoryImpl sockFac;
 	private final PropertiesAccessor torProps;
 
 	@Inject
-	TorManager(@TorProperties PropertiesAccessor torProps, SocketFactory sockFac) {
+	TorManager(@TorProperties PropertiesAccessor torProps,
+			AnonSocketFactoryImpl sockFac) {
 		keyPair = null;
 		this.sockFac = sockFac;
 		this.torProps = torProps;
@@ -107,7 +108,7 @@ public class TorManager {
 		NetlibURLStreamHandlerFactory tmp = new NetlibURLStreamHandlerFactory(
 				true);
 		tmp.setNetLayerForHttpHttpsFtp(torNetLayer);
-		if (!anonymSelfTest()) {
+		if (isAnonymSelfTest()) {
 			return this;
 		} else {
 			// Something went terribly wrong here. We are not communicating
@@ -131,7 +132,7 @@ public class TorManager {
 	 * @return
 	 * @throws IOException
 	 */
-	private boolean anonymSelfTest() throws IOException {
+	private boolean isAnonymSelfTest() throws IOException {
 		String urlStr = "http://checkip.amazonaws.com/";
 		NetlibURLStreamHandlerFactory tmp = new NetlibURLStreamHandlerFactory(
 				true);
@@ -154,6 +155,6 @@ public class TorManager {
 		String privateIp = privateIn.readLine(); // you get the IP as a String
 		System.out.println("Private ip: " + privateIp);
 
-		return !(ip.equalsIgnoreCase(privateIp));
+		return (!ip.equalsIgnoreCase(privateIp));
 	}
 }

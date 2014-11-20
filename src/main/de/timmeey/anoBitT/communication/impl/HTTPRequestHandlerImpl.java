@@ -7,9 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -20,41 +18,23 @@ import com.google.inject.Singleton;
 import de.timmeey.anoBitT.communication.HTTPRequest;
 import de.timmeey.anoBitT.communication.HTTPRequestService;
 import de.timmeey.anoBitT.communication.HTTPResponse;
-import de.timmeey.anoBitT.communication.httpServer.AnonBitMessage;
+import de.timmeey.anoBitT.communication.communicationServer.AnonBitMessage;
 import de.timmeey.anoBitT.config.GuiceAnnotations.HTTPRequestExecutor;
-import de.timmeey.anoBitT.config.GuiceAnnotations.HttpExternalServerPort;
-import de.timmeey.anoBitT.network.SocketFactory;
+import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
 
 @Singleton
 public class HTTPRequestHandlerImpl implements HTTPRequestService {
-	protected final SocketFactory socketFactory;
+	protected final SocketFactoryImpl anonSocketFactory;
 	protected final Gson gson;
 	private final ExecutorService execPool;
-	private final int httpRequestServerPort;
 
 	@Inject
-	private HTTPRequestHandlerImpl(SocketFactory socketFactory, Gson gson,
-			@HTTPRequestExecutor ExecutorService execService,
-			@HttpExternalServerPort int httpRequestServerPort) {
+	private HTTPRequestHandlerImpl(SocketFactoryImpl anonSocketFactory,
+			Gson gson, @HTTPRequestExecutor ExecutorService execService) {
 
 		this.execPool = execService;
 		this.gson = gson;
-		this.socketFactory = socketFactory;
-		this.httpRequestServerPort = httpRequestServerPort;
-
-	}
-
-	@Override
-	public <T extends HTTPResponse> Future<T> send(
-			final HTTPRequest<?> request, Class<T> clazz) {
-		return send(request, clazz, httpRequestServerPort);
-
-	}
-
-	public <T extends HTTPResponse> Future<T> send(
-			final HTTPRequest<?> request, Class<T> clazz,
-			boolean keepConnectionAlive) {
-		return send(request, clazz, httpRequestServerPort);
+		this.anonSocketFactory = anonSocketFactory;
 
 	}
 
@@ -75,7 +55,7 @@ public class HTTPRequestHandlerImpl implements HTTPRequestService {
 	private String doPost(String host, String path, String data, int port)
 			throws UnknownHostException, IOException {
 		System.out.println("Posting " + data + "to " + host + path);
-		Socket server = socketFactory.getPrivateSocket(host, port);
+		Socket server = anonSocketFactory.getSocket(host, port);
 		BufferedWriter bufW = new BufferedWriter(new OutputStreamWriter(
 				server.getOutputStream()));
 		BufferedReader bufR = new BufferedReader(new InputStreamReader(

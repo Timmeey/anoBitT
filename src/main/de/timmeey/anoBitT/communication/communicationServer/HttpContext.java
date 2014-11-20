@@ -1,4 +1,4 @@
-package de.timmeey.anoBitT.communication.httpServer;
+package de.timmeey.anoBitT.communication.communicationServer;
 
 import com.google.gson.Gson;
 

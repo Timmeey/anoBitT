@@ -12,7 +12,7 @@ import com.google.inject.Injector;
 import de.timmeey.anoBitT.config.AnonBitTModule;
 import de.timmeey.anoBitT.config.DefaultsConfigModule;
 import de.timmeey.anoBitT.dht.DHTService;
-import de.timmeey.anoBitT.network.SocketFactory;
+import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
 import de.timmeey.anoBitT.tor.TorManager;
 import asg.cliche.Command;
 import asg.cliche.ShellFactory;

@@ -17,13 +17,17 @@ import com.sun.net.httpserver.HttpServer;
 import de.timmeey.anoBitT.communication.HTTPRequestService;
 import de.timmeey.anoBitT.communication.external.ExternalCommunicationHandler;
 import de.timmeey.anoBitT.communication.impl.HTTPRequestHandlerImpl;
+import de.timmeey.anoBitT.config.GuiceAnnotations.AnonSocketFactory;
 import de.timmeey.anoBitT.config.GuiceAnnotations.AppProperties;
 import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
 import de.timmeey.anoBitT.config.GuiceAnnotations.HTTPRequestExecutor;
+import de.timmeey.anoBitT.config.GuiceAnnotations.NonAnonSocketFactory;
 import de.timmeey.anoBitT.config.GuiceAnnotations.TorProperties;
 import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.dht.impl.DHTServiceFakeImpl;
 import de.timmeey.anoBitT.network.SocketFactory;
+import de.timmeey.anoBitT.network.impl.AnonSocketFactoryImpl;
+import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
 import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.anoBitT.tor.TorManager;
 
@@ -44,7 +48,13 @@ public class AnonBitTModule extends AbstractModule {
 			bind(PropertiesAccessor.class).annotatedWith(AppProperties.class)
 					.toInstance(PropertiesFactory.getPropertiesAccessor("app"));
 
-			bind(SocketFactory.class);
+			bind(PropertiesAccessor.class).annotatedWith(DHTProperties.class)
+					.toInstance(PropertiesFactory.getPropertiesAccessor("dht"));
+
+			bind(SocketFactory.class).annotatedWith(AnonSocketFactory.class)
+					.to(AnonSocketFactoryImpl.class);
+			bind(SocketFactory.class).annotatedWith(NonAnonSocketFactory.class)
+					.to(SocketFactoryImpl.class);
 
 			bind(TorManager.class);
 
@@ -55,10 +65,6 @@ public class AnonBitTModule extends AbstractModule {
 							httpExecutor);
 
 			bind(ExternalCommunicationHandler.class);
-			bind(HttpServer.class).toInstance(HttpServer.create());
-
-			bind(PropertiesAccessor.class).annotatedWith(DHTProperties.class)
-					.toInstance(PropertiesFactory.getPropertiesAccessor("dht"));
 
 			bind(DHTService.class).to(DHTServiceFakeImpl.class);
 
