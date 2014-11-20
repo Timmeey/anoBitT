@@ -17,16 +17,13 @@ import org.silvertunnel_ng.netlib.layer.tor.util.Encryption;
 import org.silvertunnel_ng.netlib.layer.tor.util.RSAKeyPair;
 
 import timmeeyLib.properties.PropertiesAccessor;
-import timmeeyLib.properties.PropertiesFactory;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
-import de.timmeey.anoBitT.main;
 import de.timmeey.anoBitT.config.GuiceAnnotations.TorProperties;
 import de.timmeey.anoBitT.exceptions.NotAnonymException;
 import de.timmeey.anoBitT.network.SocketFactory;
-import de.timmeey.anoBitT.network.UrlFactory;
 
 @Singleton
 public class TorManager {
@@ -35,15 +32,12 @@ public class TorManager {
 	private NetLayer torNetLayer;
 	private final SocketFactory sockFac;
 	private final PropertiesAccessor torProps;
-	private final UrlFactory urlFactory;
 
 	@Inject
-	TorManager(@TorProperties PropertiesAccessor torProps,
-			SocketFactory sockFac, UrlFactory urlFactory) {
+	TorManager(@TorProperties PropertiesAccessor torProps, SocketFactory sockFac) {
 		keyPair = null;
 		this.sockFac = sockFac;
 		this.torProps = torProps;
-		this.urlFactory = urlFactory;
 
 	}
 
@@ -112,7 +106,6 @@ public class TorManager {
 
 		NetlibURLStreamHandlerFactory tmp = new NetlibURLStreamHandlerFactory(
 				true);
-		this.urlFactory.setNetlibStreamHandlerFactory(tmp);
 		tmp.setNetLayerForHttpHttpsFtp(torNetLayer);
 		if (!anonymSelfTest()) {
 			return this;
@@ -130,24 +123,37 @@ public class TorManager {
 		return this.keyPair;
 	}
 
+	/**
+	 * Calls an amazon ip two times, one time over a not anonym connection, and
+	 * one time through the anonymitiy network. If the listed ips differ, the
+	 * anonymity layer works
+	 * 
+	 * @return
+	 * @throws IOException
+	 */
 	private boolean anonymSelfTest() throws IOException {
-		URL whatismyip = this.urlFactory
-				.getNonPrivateURL("http://checkip.amazonaws.com/");
+		String urlStr = "http://checkip.amazonaws.com/";
+		NetlibURLStreamHandlerFactory tmp = new NetlibURLStreamHandlerFactory(
+				true);
+		tmp.setNetLayerForHttpHttpsFtp(torNetLayer);
+
+		URL context = null;
+		URL whatIsMyIp = new URL(context, urlStr,
+				tmp.createURLStreamHandler(new URL(urlStr).getProtocol()));
+
 		BufferedReader in = new BufferedReader(new InputStreamReader(
-				whatismyip.openStream()));
+				whatIsMyIp.openStream()));
 
 		String ip = in.readLine(); // you get the IP as a String
 		System.out.println("nonPrivate ip: " + ip);
 
-		URL whatIsMyPrivateIp = this.urlFactory.getPrivateURL(
-				"http://checkip.amazonaws.com/", false);
+		URL whatIsMyPrivateIp = new URL("http://checkip.amazonaws.com/");
 		BufferedReader privateIn = new BufferedReader(new InputStreamReader(
 				whatIsMyPrivateIp.openStream()));
 
 		String privateIp = privateIn.readLine(); // you get the IP as a String
 		System.out.println("Private ip: " + privateIp);
-		return false;
-		// return !(ip.equalsIgnoreCase(privateIp));
-	}
 
+		return !(ip.equalsIgnoreCase(privateIp));
+	}
 }

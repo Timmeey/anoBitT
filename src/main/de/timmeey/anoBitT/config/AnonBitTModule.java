@@ -24,8 +24,6 @@ import de.timmeey.anoBitT.config.GuiceAnnotations.TorProperties;
 import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.dht.impl.DHTServiceFakeImpl;
 import de.timmeey.anoBitT.network.SocketFactory;
-import de.timmeey.anoBitT.network.UrlFactory;
-import de.timmeey.anoBitT.network.UrlFactoryImpl;
 import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.anoBitT.tor.TorManager;
 
@@ -50,7 +48,6 @@ public class AnonBitTModule extends AbstractModule {
 
 			bind(TorManager.class);
 
-			bind(UrlFactory.class).to(UrlFactoryImpl.class);
 			bind(HTTPRequestService.class).to(HTTPRequestHandlerImpl.class);
 
 			bind(ExecutorService.class)
