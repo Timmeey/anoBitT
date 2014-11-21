@@ -48,4 +48,10 @@ public class GuiceAnnotations {
 	public @interface NonAnonSocketFactory {
 	}
 
+	@BindingAnnotation
+	@Target({ FIELD, PARAMETER, METHOD })
+	@Retention(RUNTIME)
+	public @interface HTTPRequestSocketPool {
+	}
+
 }

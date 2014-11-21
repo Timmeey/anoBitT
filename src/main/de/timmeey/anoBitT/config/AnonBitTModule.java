@@ -1,18 +1,22 @@
 package de.timmeey.anoBitT.config;
 
 import java.io.IOException;
+import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import timmeeyLib.exceptions.unchecked.NotYetInitializedException;
+import timmeeyLib.pooling.ObjectPool;
+import timmeeyLib.pooling.SimpleObjectPool;
+import timmeeyLib.pooling.Verifier;
 import timmeeyLib.properties.PropertiesAccessor;
 import timmeeyLib.properties.PropertiesFactory;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.sun.net.httpserver.HttpServer;
+import com.google.inject.TypeLiteral;
 
 import de.timmeey.anoBitT.communication.HTTPRequestService;
 import de.timmeey.anoBitT.communication.external.ExternalCommunicationHandler;
@@ -21,6 +25,7 @@ import de.timmeey.anoBitT.config.GuiceAnnotations.AnonSocketFactory;
 import de.timmeey.anoBitT.config.GuiceAnnotations.AppProperties;
 import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
 import de.timmeey.anoBitT.config.GuiceAnnotations.HTTPRequestExecutor;
+import de.timmeey.anoBitT.config.GuiceAnnotations.HTTPRequestSocketPool;
 import de.timmeey.anoBitT.config.GuiceAnnotations.NonAnonSocketFactory;
 import de.timmeey.anoBitT.config.GuiceAnnotations.TorProperties;
 import de.timmeey.anoBitT.dht.DHTService;
@@ -67,6 +72,17 @@ public class AnonBitTModule extends AbstractModule {
 			bind(ExternalCommunicationHandler.class);
 
 			bind(DHTService.class).to(DHTServiceFakeImpl.class);
+
+			bind(new TypeLiteral<ObjectPool<String, Socket>>() {
+			}).annotatedWith(HTTPRequestSocketPool.class).toInstance(
+					new SimpleObjectPool<String, Socket>(1000L * 20, 1000L * 2,
+							new Verifier<Socket>() {
+
+								@Override
+								public boolean verify(Socket object) {
+									return !object.isClosed();
+								}
+							}));
 
 		} catch (NotYetInitializedException e) {
 			// TODO Auto-generated catch block

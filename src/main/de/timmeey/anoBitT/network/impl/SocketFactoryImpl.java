@@ -69,26 +69,10 @@ public class SocketFactoryImpl implements SocketFactory, SockerWrapperFactory {
 	 */
 	public Socket getSocket(String remoteHostname, int remotePort)
 			throws UnknownHostException, IOException {
-		Socket socket = getSocketIfAlreadyExisting(remoteHostname, remotePort);
-		if (socket == null) {
-			socket = new Socket(remoteHostname, remotePort);
+		Socket socket;
 
-		}
-		cacheSocket(socket, remoteHostname, remotePort);
 		return new Socket(remoteHostname, remotePort);
 
 	}
 
-	private Socket getSocketIfAlreadyExisting(String host, int port) {
-		Socket socket = openConnections.get(host + ":" + port);
-		if (socket != null && !socket.isClosed()) {
-			System.out.println("Found cached socket, reusing it");
-			return socket;
-		}
-		return null;
-	}
-
-	private void cacheSocket(Socket socket, String host, int port) {
-		openConnections.put(host + ":" + port, socket);
-	}
 }

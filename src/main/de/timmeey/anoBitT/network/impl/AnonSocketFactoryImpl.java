@@ -91,33 +91,17 @@ public class AnonSocketFactoryImpl implements SocketFactory,
 			throw new NotYetInitializedException(
 					"Socketfactory is not yet initialized");
 
-		Socket socket = getSocketIfAlreadyExisting(host, port);
+		Socket socket;
 
-		if (socket == null) {
-			TcpipNetAddress remoteAddress = new TcpipNetAddress(host, port);
-			NetSocket netSocket = this.netLayer.createNetSocket(null, null,
-					remoteAddress);
-			socket = new NetSocket2Socket(netSocket);
-			socket.setKeepAlive(true);
-			socket.setSoTimeout(1000 * 60 * 10);
+		TcpipNetAddress remoteAddress = new TcpipNetAddress(host, port);
+		NetSocket netSocket = this.netLayer.createNetSocket(null, null,
+				remoteAddress);
+		socket = new NetSocket2Socket(netSocket);
+		socket.setKeepAlive(true);
+		socket.setSoTimeout(1000 * 60 * 10);
 
-		}
-		cacheSocket(socket, host, port);
 		return socket;
 
-	}
-
-	private Socket getSocketIfAlreadyExisting(String host, int port) {
-		Socket socket = openConnections.get(host + ":" + port);
-		if (socket != null && !socket.isClosed()) {
-			System.out.println("Found cached socket, reusing it");
-			return socket;
-		}
-		return null;
-	}
-
-	private void cacheSocket(Socket socket, String host, int port) {
-		openConnections.put(host + ":" + port, socket);
 	}
 
 	public void setNetLayer(NetLayer torNetLayer) {
