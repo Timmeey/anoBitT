@@ -8,19 +8,25 @@ import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.inject.Inject;
 
+import de.timmeey.anoBitT.communication.HTTPRequest;
+import de.timmeey.anoBitT.communication.HTTPResponse;
+
 public class TimmeeyHttpSimpleServer extends Thread {
 	private ServerSocket serverSocket;
 	private final Map<String, HttpHandler> handlerList = new HashMap<String, HttpHandler>();
+	private final LinkedList<HTTPFilter> filter = new LinkedList<HTTPFilter>();
 	private final Gson gson;
 
 	@Inject
 	public TimmeeyHttpSimpleServer(Gson gson) {
 		this.gson = gson;
+
 	}
 
 	public void setServerSocket(ServerSocket server) {
@@ -29,6 +35,25 @@ public class TimmeeyHttpSimpleServer extends Thread {
 		this.start();
 		;
 		System.out.println("Started");
+	}
+
+	/**
+	 * New Filter are appended at the end of the list. THe Filter chain goes
+	 * down from first added -> last added If only one filter returnes false the
+	 * request is aborted and send back with a error message
+	 * 
+	 * @param filter
+	 *            the filter to user
+	 * @return whether the filter lets the request pass
+	 */
+	public TimmeeyHttpSimpleServer registerFilter(HTTPFilter filter) {
+		this.filter.addLast(filter);
+		return this;
+	}
+
+	public TimmeeyHttpSimpleServer removeFilter(HTTPFilter filter) {
+		this.filter.remove(filter);
+		return this;
 	}
 
 	public TimmeeyHttpSimpleServer registerHandler(String path,
@@ -77,11 +102,18 @@ public class TimmeeyHttpSimpleServer extends Thread {
 						HttpHandler handler = handlerList
 								.get(message.getPath());
 						if (handler != null) {
-							handler.handle(ctx);
-							System.out.println("Was handled");
+							// THERE HAPPENS THE MAGIC
+							// Only calls the actual handler if every filter
+							// said OK
+							if (filterRequestShallPass(message.getPath(), ctx)) {
+								handler.handle(ctx);
+							} else {
+								if (ctx.getResponseCode() == 0) {
+									ctx.setResponseCode(500);
+								}
+							}
 							bufWrite.write(ctx.getResponse() + "\n");
 							bufWrite.flush();
-							System.out.println("Flushed");
 						} else {
 							System.out.println("No handler found");
 							client.close();
@@ -105,6 +137,24 @@ public class TimmeeyHttpSimpleServer extends Thread {
 
 	public void unregister(String path) {
 		handlerList.remove(path);
-		
+
+	}
+
+	private boolean filterRequestShallPass(String path, HttpContext ctx) {
+		try {
+			for (HTTPFilter httpFilter : filter) {
+				if (!httpFilter.doFilter(path, ctx)) {
+					System.out.println("Filter: " + httpFilter
+							+ ", prevented the request from passing down");
+					return false;
+				}
+			}
+			return true;
+		} catch (Exception e) {
+			System.out
+					.println("Exceptioon while filtering. abort request handling");
+			e.printStackTrace();
+		}
+		return false;
 	}
 }

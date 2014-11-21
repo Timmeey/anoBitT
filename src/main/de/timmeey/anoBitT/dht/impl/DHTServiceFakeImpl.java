@@ -6,48 +6,51 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import timmeeyLib.exceptions.unchecked.NotYetImplementedException;
+import timmeeyLib.properties.PropertiesAccessor;
 import anoBitT.DHTGetRequest;
 import anoBitT.DHTPutRequest;
 import anoBitT.DHTReply;
 
 import com.google.inject.Inject;
 
-import timmeeyLib.exceptions.unchecked.NotYetImplementedException;
-import timmeeyLib.properties.PropertiesAccessor;
 import de.timmeey.anoBitT.communication.HTTPRequestService;
 import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
+import de.timmeey.anoBitT.config.GuiceAnnotations.NonAnonSocketFactory;
 import de.timmeey.anoBitT.dht.DHTService;
-import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
+import de.timmeey.anoBitT.network.SocketFactory;
 
 public class DHTServiceFakeImpl implements DHTService {
 
-	private final SocketFactoryImpl socketFactory;
+	private final SocketFactory socketFactory;
 	private final PropertiesAccessor props;
 	private final HTTPRequestService requestService;
 	private final int DHTPort;
+	private final String host;
 
 	@Inject
-	protected DHTServiceFakeImpl(SocketFactoryImpl socketFactory,
+	protected DHTServiceFakeImpl(
+			@NonAnonSocketFactory SocketFactory socketFactory,
 			@DHTProperties PropertiesAccessor props,
 			HTTPRequestService requestService) {
 		this.props = props;
 		this.socketFactory = socketFactory;
 		this.requestService = requestService;
 		DHTPort = Integer.parseInt(props.getProperty("DHTPort", "62352"));
+		// this.host = props.getProperty("DHTHostname");
+		this.host = "localhost";
 
 	}
 
 	@Override
 	public boolean put(String key, String value, boolean waitForConfirmation) {
 		boolean result = !waitForConfirmation;
-		DHTPutRequest putRequest = new DHTPutRequest(
-				props.getProperty("DHTHostname"), key, value);
+		DHTPutRequest putRequest = new DHTPutRequest(host, key, value);
 
 		// DHTPutRequest putRequest = new DHTPutRequest("localhost", key,
 		// value);
 		Future<DHTReply> putReply = requestService.send(putRequest,
 				putRequest.getResponseType(), DHTPort);
-		System.out.println("done");
 		if (waitForConfirmation) {
 			DHTReply realReply;
 			try {
@@ -77,14 +80,14 @@ public class DHTServiceFakeImpl implements DHTService {
 
 	public String get(String key) {
 		String result = null;
-		DHTGetRequest getRequest = new DHTGetRequest(
-				props.getProperty("DHTHostname"), key);
+		DHTGetRequest getRequest = new DHTGetRequest(host, key);
 		// DHTGetRequest getRequest = new DHTGetRequest("localhost", key);
 
 		Future<DHTReply> getReply = requestService.send(getRequest,
 				getRequest.getResponseType(), DHTPort);
 		try {
-			result = getReply.get(60, TimeUnit.SECONDS).getValue();
+			DHTReply reply = getReply.get(60, TimeUnit.SECONDS);
+			result = reply.getValue();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -44,9 +44,14 @@ public class HTTPRequestHandlerImpl implements HTTPRequestService {
 
 			public T call() throws Exception {
 				// Thread.sleep(4000);
-				return deserializeResponse(
+				T result = deserializeResponse(
 						doPost(request.getHost(), request.getPath(),
 								serializeHTTPRequest(request), port), clazz);
+				if (result.getResponseCode() != 200) {
+					System.out.println("Warning, response code was: "
+							+ result.getResponseCode());
+				}
+				return result;
 			}
 		};
 		return execPool.submit(call);
@@ -64,10 +69,7 @@ public class HTTPRequestHandlerImpl implements HTTPRequestService {
 
 		bufW.write(gson.toJson(msg) + "\n");
 		bufW.flush();
-		System.out.println("Flushed");
 		String answer = bufR.readLine();
-		System.out.println("Answer was");
-
 		return answer;
 
 	}

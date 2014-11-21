@@ -2,7 +2,7 @@ package anoBitT;
 
 import de.timmeey.anoBitT.communication.HTTPResponse;
 
-public class DHTReply implements HTTPResponse {
+public class DHTReply extends HTTPResponse {
 	private final String key;
 	private final String value;
 

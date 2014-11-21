@@ -11,6 +11,9 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 
+import de.timmeey.anoBitT.communication.HTTPRequest;
+import de.timmeey.anoBitT.communication.HTTPResponse;
+import de.timmeey.anoBitT.communication.communicationServer.HTTPFilter;
 import de.timmeey.anoBitT.communication.communicationServer.HttpContext;
 import de.timmeey.anoBitT.communication.communicationServer.HttpHandler;
 import de.timmeey.anoBitT.communication.communicationServer.TimmeeyHttpSimpleServer;
@@ -18,6 +21,7 @@ import de.timmeey.anoBitT.config.AnonBitTModule;
 import de.timmeey.anoBitT.config.DefaultsConfigModule;
 import de.timmeey.anoBitT.config.GuiceAnnotations.AnonSocketFactory;
 import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
+import de.timmeey.anoBitT.config.GuiceAnnotations.NonAnonSocketFactory;
 import de.timmeey.anoBitT.network.SocketFactory;
 import de.timmeey.anoBitT.tor.TorManager;
 
@@ -42,13 +46,13 @@ public class DHTServer {
 		 */
 		TorManager tor = injector.getInstance(TorManager.class);
 		System.out.println("Startin tor");
-		tor.startTor();
+		// tor.startTor();
 		System.out.println("Tor started");
 		PropertiesAccessor dhtProps = injector.getInstance(Key.get(
 				PropertiesAccessor.class, DHTProperties.class));
 
 		SocketFactory socketFactory = injector.getInstance(Key.get(
-				SocketFactory.class, AnonSocketFactory.class));
+				SocketFactory.class, NonAnonSocketFactory.class));
 		int DHTPort = Integer
 				.parseInt(dhtProps.getProperty("DHTPort", "62352"));
 
@@ -57,6 +61,17 @@ public class DHTServer {
 		ServerSocket serverSocket = socketFactory.getServerSocket(DHTPort);
 		server.setServerSocket(serverSocket);
 		System.out.println("ready");
+
+		server.registerFilter(new HTTPFilter() {
+
+			@Override
+			public boolean doFilter(String path, HttpContext ctx) {
+				System.out.println(ctx.getPayload(HTTPRequest.class)
+						.getAuthenticationMap());
+				System.out.println("I'm a filter");
+				return true;
+			}
+		});
 
 		DHTGetRequest.addHandler(server, new HttpHandler() {
 

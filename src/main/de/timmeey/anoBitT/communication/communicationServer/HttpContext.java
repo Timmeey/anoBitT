@@ -8,7 +8,9 @@ import de.timmeey.anoBitT.communication.HTTPResponse;
 public class HttpContext {
 	private final Gson gson;
 	private String payload;
-	private String response;
+	private HTTPResponse response = new HTTPResponse();
+
+	private int responseCode;
 
 	public HttpContext(Gson gson, String payloadObject) {
 		this.payload = payloadObject;
@@ -16,7 +18,7 @@ public class HttpContext {
 	}
 
 	public void setResponse(HTTPResponse response) {
-		this.response = gson.toJson(response);
+		this.response = response;
 	}
 
 	public <T extends HTTPRequest<?>> T getPayload(Class<T> clazz) {
@@ -24,7 +26,16 @@ public class HttpContext {
 	}
 
 	public String getResponse() {
-		return response;
+		response.setResponseCode(getResponseCode());
+		return gson.toJson(response);
 	}
 
+	public HttpContext setResponseCode(int responseCode) {
+		this.responseCode = responseCode;
+		return this;
+	}
+
+	public int getResponseCode() {
+		return this.responseCode;
+	}
 }

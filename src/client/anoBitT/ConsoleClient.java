@@ -27,7 +27,7 @@ public class ConsoleClient {
 		Injector injector = Guice.createInjector(new AnonBitTModule(),
 				new DHTFakeServiceServerModule(), new DefaultsConfigModule());
 		dht = injector.getInstance(DHTService.class);
-		injector.getInstance(TorManager.class).startTor();
+		// injector.getInstance(TorManager.class).startTor();
 	}
 
 	@Command
