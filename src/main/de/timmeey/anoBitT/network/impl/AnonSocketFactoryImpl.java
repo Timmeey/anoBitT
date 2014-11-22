@@ -14,13 +14,12 @@ import org.silvertunnel_ng.netlib.api.util.TcpipNetAddress;
 import org.silvertunnel_ng.netlib.layer.tor.TorHiddenServicePortPrivateNetAddress;
 import org.silvertunnel_ng.netlib.layer.tor.TorHiddenServicePrivateNetAddress;
 
-import timmeeyLib.exceptions.unchecked.NotYetInitializedException;
-import timmeeyLib.networking.SocketFactory;
-
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 import de.timmeey.anoBitT.network.SockerWrapperFactory;
+import de.timmeey.libTimmeey.exceptions.unchecked.NotYetInitializedException;
+import de.timmeey.libTimmeey.networking.SocketFactory;
 
 @Singleton
 public class AnonSocketFactoryImpl implements SocketFactory,

@@ -7,12 +7,11 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import timmeeyLib.networking.SocketFactory;
-
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 import de.timmeey.anoBitT.network.SockerWrapperFactory;
+import de.timmeey.libTimmeey.networking.SocketFactory;
 
 @Singleton
 public class SocketFactoryImpl implements SocketFactory, SockerWrapperFactory {

@@ -16,14 +16,13 @@ import org.silvertunnel_ng.netlib.layer.tor.TorNetLayerUtil;
 import org.silvertunnel_ng.netlib.layer.tor.util.Encryption;
 import org.silvertunnel_ng.netlib.layer.tor.util.RSAKeyPair;
 
-import timmeeyLib.properties.PropertiesAccessor;
-
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 import de.timmeey.anoBitT.config.GuiceAnnotations.TorProperties;
 import de.timmeey.anoBitT.exceptions.NotAnonymException;
 import de.timmeey.anoBitT.network.impl.AnonSocketFactoryImpl;
+import de.timmeey.libTimmeey.properties.PropertiesAccessor;
 
 @Singleton
 public class TorManager {

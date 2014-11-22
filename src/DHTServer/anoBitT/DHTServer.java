@@ -4,15 +4,6 @@ import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.Iterator;
 
-import timmeeyLib.networking.HTTPRequest;
-import timmeeyLib.networking.SocketFactory;
-import timmeeyLib.networking.communicationServer.HTTPFilter;
-import timmeeyLib.networking.communicationServer.HttpContext;
-import timmeeyLib.networking.communicationServer.HttpHandler;
-import timmeeyLib.networking.communicationServer.TimmeeyHttpSimpleServer;
-import timmeeyLib.properties.PropertiesAccessor;
-import timmeeyLib.properties.PropertiesFactory;
-
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
@@ -22,6 +13,14 @@ import de.timmeey.anoBitT.config.DefaultsConfigModule;
 import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
 import de.timmeey.anoBitT.config.GuiceAnnotations.NonAnonSocketFactory;
 import de.timmeey.anoBitT.tor.TorManager;
+import de.timmeey.libTimmeey.networking.HTTPRequest;
+import de.timmeey.libTimmeey.networking.SocketFactory;
+import de.timmeey.libTimmeey.networking.communicationServer.HTTPFilter;
+import de.timmeey.libTimmeey.networking.communicationServer.HttpContext;
+import de.timmeey.libTimmeey.networking.communicationServer.HttpHandler;
+import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleServer;
+import de.timmeey.libTimmeey.properties.PropertiesAccessor;
+import de.timmeey.libTimmeey.properties.PropertiesFactory;
 
 public class DHTServer {
 	private static HashMap<String, String> dht = new HashMap<String, String>();

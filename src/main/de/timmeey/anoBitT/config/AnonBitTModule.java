@@ -7,18 +7,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import timmeeyLib.exceptions.unchecked.NotYetInitializedException;
-import timmeeyLib.networking.NetSerializer;
-import timmeeyLib.networking.SocketFactory;
-import timmeeyLib.networking.communicationClient.HTTPRequestHandlerImpl;
-import timmeeyLib.networking.communicationClient.HTTPRequestService;
-import timmeeyLib.networking.communicationServer.TimmeeyHttpSimpleServer;
-import timmeeyLib.pooling.ObjectPool;
-import timmeeyLib.pooling.SimpleObjectPool;
-import timmeeyLib.pooling.Verifier;
-import timmeeyLib.properties.PropertiesAccessor;
-import timmeeyLib.properties.PropertiesFactory;
-
 import com.google.gson.Gson;
 import com.google.inject.AbstractModule;
 import com.google.inject.Key;
@@ -46,6 +34,17 @@ import de.timmeey.anoBitT.network.impl.AnonSocketFactoryImpl;
 import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
 import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.anoBitT.tor.TorManager;
+import de.timmeey.libTimmeey.exceptions.unchecked.NotYetInitializedException;
+import de.timmeey.libTimmeey.networking.NetSerializer;
+import de.timmeey.libTimmeey.networking.SocketFactory;
+import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestHandlerImpl;
+import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestService;
+import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleServer;
+import de.timmeey.libTimmeey.pooling.ObjectPool;
+import de.timmeey.libTimmeey.pooling.SimpleObjectPool;
+import de.timmeey.libTimmeey.pooling.Verifier;
+import de.timmeey.libTimmeey.properties.PropertiesAccessor;
+import de.timmeey.libTimmeey.properties.PropertiesFactory;
 
 public class AnonBitTModule extends AbstractModule {
 

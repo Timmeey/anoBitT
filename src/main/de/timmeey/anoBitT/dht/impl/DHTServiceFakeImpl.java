@@ -6,10 +6,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import timmeeyLib.exceptions.unchecked.NotYetImplementedException;
-import timmeeyLib.networking.SocketFactory;
-import timmeeyLib.networking.communicationClient.HTTPRequestService;
-import timmeeyLib.properties.PropertiesAccessor;
 import anoBitT.DHTGetRequest;
 import anoBitT.DHTPutRequest;
 import anoBitT.DHTReply;
@@ -20,6 +16,10 @@ import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
 import de.timmeey.anoBitT.config.GuiceAnnotations.ExternalHTTPRequestService;
 import de.timmeey.anoBitT.config.GuiceAnnotations.NonAnonSocketFactory;
 import de.timmeey.anoBitT.dht.DHTService;
+import de.timmeey.libTimmeey.exceptions.unchecked.NotYetImplementedException;
+import de.timmeey.libTimmeey.networking.SocketFactory;
+import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestService;
+import de.timmeey.libTimmeey.properties.PropertiesAccessor;
 
 public class DHTServiceFakeImpl implements DHTService {
 

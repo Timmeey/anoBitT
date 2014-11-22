@@ -1,8 +1,8 @@
 package anoBitT;
 
-import timmeeyLib.networking.HTTPRequest;
-import timmeeyLib.networking.communicationServer.HttpHandler;
-import timmeeyLib.networking.communicationServer.TimmeeyHttpSimpleServer;
+import de.timmeey.libTimmeey.networking.HTTPRequest;
+import de.timmeey.libTimmeey.networking.communicationServer.HttpHandler;
+import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleServer;
 
 public class DHTGetRequest extends HTTPRequest<DHTReply> {
 	transient public final static String path = "/dht-service/get";

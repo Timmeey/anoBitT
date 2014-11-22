@@ -2,18 +2,17 @@ package de.timmeey.anoBitT.communication.external;
 
 import java.io.IOException;
 
-import timmeeyLib.networking.SocketFactory;
-import timmeeyLib.networking.communicationClient.HTTPRequestService;
-import timmeeyLib.networking.communicationServer.HttpHandler;
-import timmeeyLib.networking.communicationServer.TimmeeyHttpSimpleServer;
-import timmeeyLib.properties.PropertiesAccessor;
-
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 import de.timmeey.anoBitT.config.GuiceAnnotations.AnonSocketFactory;
 import de.timmeey.anoBitT.config.GuiceAnnotations.AppProperties;
 import de.timmeey.anoBitT.config.GuiceAnnotations.ExternalHTTPRequestService;
+import de.timmeey.libTimmeey.networking.SocketFactory;
+import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestService;
+import de.timmeey.libTimmeey.networking.communicationServer.HttpHandler;
+import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleServer;
+import de.timmeey.libTimmeey.properties.PropertiesAccessor;
 
 @Singleton
 public class ExternalCommunicationHandler {

@@ -1,10 +1,10 @@
 package de.timmeey.anoBitT.communication;
 
-import timmeeyLib.networking.NetSerializer;
-
 import com.google.gson.Gson;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+
+import de.timmeey.libTimmeey.networking.NetSerializer;
 
 @Singleton
 public class NetSerializerImpl implements NetSerializer {

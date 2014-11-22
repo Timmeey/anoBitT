@@ -4,8 +4,6 @@ import java.io.IOException;
 
 import org.silvertunnel_ng.netlib.api.NetLayer;
 
-import timmeeyLib.properties.PropertiesFactory;
-
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
@@ -13,6 +11,7 @@ import de.timmeey.anoBitT.communication.external.ExternalCommunicationHandler;
 import de.timmeey.anoBitT.config.AnonBitTModule;
 import de.timmeey.anoBitT.config.DefaultsConfigModule;
 import de.timmeey.anoBitT.tor.TorManager;
+import de.timmeey.libTimmeey.properties.PropertiesFactory;
 
 public class main {
 	public static final String confDir = "/home/timmeey/.anoBitT/";

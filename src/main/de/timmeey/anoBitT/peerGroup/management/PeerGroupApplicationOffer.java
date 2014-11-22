@@ -35,7 +35,7 @@ public class PeerGroupApplicationOffer {
 	}
 
 	public String getSecretOneTimePasswordHash() {
-		return timmeeyLib.hash.Hashing.sha512(getSecretOneTimePassword());
+		return de.timmeey.libTimmeey.hash.Hashing.sha512(getSecretOneTimePassword());
 
 	}
 

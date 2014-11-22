@@ -9,7 +9,7 @@ import com.google.inject.Singleton;
 import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.peerGroup.PeerGroup;
 import de.timmeey.anoBitT.tor.KeyPair;
-import timmeeyLib.properties.PropertiesAccessor;
+import de.timmeey.libTimmeey.properties.PropertiesAccessor;
 
 @Singleton
 public class PeerGroupApplicationManager {

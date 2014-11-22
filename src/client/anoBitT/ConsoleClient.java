@@ -2,9 +2,6 @@ package anoBitT;
 
 import java.io.IOException;
 
-import timmeeyLib.properties.PropertiesAccessor;
-import timmeeyLib.properties.PropertiesFactory;
-
 import com.google.gson.Gson;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -14,6 +11,8 @@ import de.timmeey.anoBitT.config.DefaultsConfigModule;
 import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
 import de.timmeey.anoBitT.tor.TorManager;
+import de.timmeey.libTimmeey.properties.PropertiesAccessor;
+import de.timmeey.libTimmeey.properties.PropertiesFactory;
 import asg.cliche.Command;
 import asg.cliche.ShellFactory;
 
