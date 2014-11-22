@@ -3,30 +3,24 @@ package de.timmeey.anoBitT.network.impl;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.silvertunnel_ng.netlib.api.NetFactory;
 import org.silvertunnel_ng.netlib.api.NetLayer;
-import org.silvertunnel_ng.netlib.api.NetLayerIDs;
 import org.silvertunnel_ng.netlib.api.NetSocket;
 import org.silvertunnel_ng.netlib.api.impl.NetServerSocket2ServerSocket;
 import org.silvertunnel_ng.netlib.api.impl.NetSocket2Socket;
-import org.silvertunnel_ng.netlib.api.impl.Socket2NetSocket;
 import org.silvertunnel_ng.netlib.api.util.TcpipNetAddress;
 import org.silvertunnel_ng.netlib.layer.tor.TorHiddenServicePortPrivateNetAddress;
 import org.silvertunnel_ng.netlib.layer.tor.TorHiddenServicePrivateNetAddress;
-import org.silvertunnel_ng.netlib.layer.tor.TorNetServerSocket;
+
+import timmeeyLib.exceptions.unchecked.NotYetInitializedException;
+import timmeeyLib.networking.SocketFactory;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
-import de.timmeey.anoBitT.main;
 import de.timmeey.anoBitT.network.SockerWrapperFactory;
-import de.timmeey.anoBitT.network.SocketFactory;
-import de.timmeey.anoBitT.tor.TorManager;
-import timmeeyLib.exceptions.unchecked.NotYetInitializedException;
 
 @Singleton
 public class AnonSocketFactoryImpl implements SocketFactory,

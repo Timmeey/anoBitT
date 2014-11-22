@@ -4,6 +4,12 @@ import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import timmeeyLib.networking.HTTPRequest;
+import timmeeyLib.networking.SocketFactory;
+import timmeeyLib.networking.communicationServer.HTTPFilter;
+import timmeeyLib.networking.communicationServer.HttpContext;
+import timmeeyLib.networking.communicationServer.HttpHandler;
+import timmeeyLib.networking.communicationServer.TimmeeyHttpSimpleServer;
 import timmeeyLib.properties.PropertiesAccessor;
 import timmeeyLib.properties.PropertiesFactory;
 
@@ -11,18 +17,10 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 
-import de.timmeey.anoBitT.communication.HTTPRequest;
-import de.timmeey.anoBitT.communication.HTTPResponse;
-import de.timmeey.anoBitT.communication.communicationServer.HTTPFilter;
-import de.timmeey.anoBitT.communication.communicationServer.HttpContext;
-import de.timmeey.anoBitT.communication.communicationServer.HttpHandler;
-import de.timmeey.anoBitT.communication.communicationServer.TimmeeyHttpSimpleServer;
 import de.timmeey.anoBitT.config.AnonBitTModule;
 import de.timmeey.anoBitT.config.DefaultsConfigModule;
-import de.timmeey.anoBitT.config.GuiceAnnotations.AnonSocketFactory;
 import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
 import de.timmeey.anoBitT.config.GuiceAnnotations.NonAnonSocketFactory;
-import de.timmeey.anoBitT.network.SocketFactory;
 import de.timmeey.anoBitT.tor.TorManager;
 
 public class DHTServer {
@@ -48,6 +46,7 @@ public class DHTServer {
 		System.out.println("Startin tor");
 		// tor.startTor();
 		System.out.println("Tor started");
+
 		PropertiesAccessor dhtProps = injector.getInstance(Key.get(
 				PropertiesAccessor.class, DHTProperties.class));
 

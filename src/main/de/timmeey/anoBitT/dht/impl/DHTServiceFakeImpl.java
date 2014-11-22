@@ -7,6 +7,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import timmeeyLib.exceptions.unchecked.NotYetImplementedException;
+import timmeeyLib.networking.SocketFactory;
+import timmeeyLib.networking.communicationClient.HTTPRequestService;
 import timmeeyLib.properties.PropertiesAccessor;
 import anoBitT.DHTGetRequest;
 import anoBitT.DHTPutRequest;
@@ -14,11 +16,10 @@ import anoBitT.DHTReply;
 
 import com.google.inject.Inject;
 
-import de.timmeey.anoBitT.communication.HTTPRequestService;
 import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
+import de.timmeey.anoBitT.config.GuiceAnnotations.ExternalHTTPRequestService;
 import de.timmeey.anoBitT.config.GuiceAnnotations.NonAnonSocketFactory;
 import de.timmeey.anoBitT.dht.DHTService;
-import de.timmeey.anoBitT.network.SocketFactory;
 
 public class DHTServiceFakeImpl implements DHTService {
 
@@ -32,7 +33,7 @@ public class DHTServiceFakeImpl implements DHTService {
 	protected DHTServiceFakeImpl(
 			@NonAnonSocketFactory SocketFactory socketFactory,
 			@DHTProperties PropertiesAccessor props,
-			HTTPRequestService requestService) {
+			@ExternalHTTPRequestService HTTPRequestService requestService) {
 		this.props = props;
 		this.socketFactory = socketFactory;
 		this.requestService = requestService;

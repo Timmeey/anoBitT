@@ -27,7 +27,7 @@ public class GuiceAnnotations {
 	@BindingAnnotation
 	@Target({ FIELD, PARAMETER, METHOD })
 	@Retention(RUNTIME)
-	public @interface HTTPRequestExecutor {
+	public @interface InternalHTTPRequestExecutor {
 	}
 
 	@BindingAnnotation
@@ -51,7 +51,31 @@ public class GuiceAnnotations {
 	@BindingAnnotation
 	@Target({ FIELD, PARAMETER, METHOD })
 	@Retention(RUNTIME)
-	public @interface HTTPRequestSocketPool {
+	public @interface InternalHTTPRequestSocketPool {
+	}
+
+	@BindingAnnotation
+	@Target({ FIELD, PARAMETER, METHOD })
+	@Retention(RUNTIME)
+	public @interface ExternalHTTPRequestSocketPool {
+	}
+
+	@BindingAnnotation
+	@Target({ FIELD, PARAMETER, METHOD })
+	@Retention(RUNTIME)
+	public @interface ExternalHTTPRequestExecutor {
+	}
+
+	@BindingAnnotation
+	@Target({ FIELD, PARAMETER, METHOD })
+	@Retention(RUNTIME)
+	public @interface ExternalHTTPRequestService {
+	}
+
+	@BindingAnnotation
+	@Target({ FIELD, PARAMETER, METHOD })
+	@Retention(RUNTIME)
+	public @interface InternalHTTPRequestService {
 	}
 
 }

@@ -2,17 +2,18 @@ package de.timmeey.anoBitT.communication.external;
 
 import java.io.IOException;
 
+import timmeeyLib.networking.SocketFactory;
+import timmeeyLib.networking.communicationClient.HTTPRequestService;
+import timmeeyLib.networking.communicationServer.HttpHandler;
+import timmeeyLib.networking.communicationServer.TimmeeyHttpSimpleServer;
 import timmeeyLib.properties.PropertiesAccessor;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
-import de.timmeey.anoBitT.communication.HTTPRequestService;
-import de.timmeey.anoBitT.communication.communicationServer.HttpHandler;
-import de.timmeey.anoBitT.communication.communicationServer.TimmeeyHttpSimpleServer;
 import de.timmeey.anoBitT.config.GuiceAnnotations.AnonSocketFactory;
 import de.timmeey.anoBitT.config.GuiceAnnotations.AppProperties;
-import de.timmeey.anoBitT.network.SocketFactory;
+import de.timmeey.anoBitT.config.GuiceAnnotations.ExternalHTTPRequestService;
 
 @Singleton
 public class ExternalCommunicationHandler {
@@ -24,7 +25,7 @@ public class ExternalCommunicationHandler {
 
 	@Inject
 	protected ExternalCommunicationHandler(TimmeeyHttpSimpleServer server,
-			HTTPRequestService serializer,
+			@ExternalHTTPRequestService HTTPRequestService serializer,
 			@AppProperties PropertiesAccessor props,
 			@AnonSocketFactory SocketFactory socketFactory) {
 		this.serializer = serializer;
