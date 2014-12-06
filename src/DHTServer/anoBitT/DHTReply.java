@@ -1,6 +1,6 @@
 package anoBitT;
 
-import de.timmeey.libTimmeey.networking.HTTPResponse;
+import de.timmeey.libTimmeey.networking.communicationServer.HTTPResponse;
 
 public class DHTReply extends HTTPResponse {
 	private final String key;

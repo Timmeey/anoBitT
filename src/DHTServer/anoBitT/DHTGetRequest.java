@@ -1,6 +1,6 @@
 package anoBitT;
 
-import de.timmeey.libTimmeey.networking.HTTPRequest;
+import de.timmeey.libTimmeey.networking.communicationServer.HTTPRequest;
 import de.timmeey.libTimmeey.networking.communicationServer.HttpHandler;
 import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleServer;
 

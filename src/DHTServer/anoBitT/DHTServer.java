@@ -4,6 +4,9 @@ import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
@@ -13,16 +16,19 @@ import de.timmeey.anoBitT.config.DefaultsConfigModule;
 import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
 import de.timmeey.anoBitT.config.GuiceAnnotations.NonAnonSocketFactory;
 import de.timmeey.anoBitT.tor.TorManager;
-import de.timmeey.libTimmeey.networking.HTTPRequest;
 import de.timmeey.libTimmeey.networking.SocketFactory;
 import de.timmeey.libTimmeey.networking.communicationServer.HTTPFilter;
+import de.timmeey.libTimmeey.networking.communicationServer.HTTPRequest;
 import de.timmeey.libTimmeey.networking.communicationServer.HttpContext;
 import de.timmeey.libTimmeey.networking.communicationServer.HttpHandler;
 import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleServer;
+import de.timmeey.libTimmeey.networking.communicationServer.HTTPResponse.ResponseCode;
 import de.timmeey.libTimmeey.properties.PropertiesAccessor;
 import de.timmeey.libTimmeey.properties.PropertiesFactory;
 
 public class DHTServer {
+	private static final Logger logger = LoggerFactory
+			.getLogger(DHTServer.class);
 	private static HashMap<String, String> dht = new HashMap<String, String>();
 	private static HashMap<String, Long> dhtTMO = new HashMap<String, Long>();
 	private static final Object readLock = new Object();
@@ -78,8 +84,8 @@ public class DHTServer {
 				System.out.println("Get request");
 				DHTGetRequest request = ctx.getPayload(DHTGetRequest.class);
 				String value = getValue(request.getKey());
-
 				ctx.setResponse(new DHTReply(request.getKey(), value));
+				ctx.setResponseCode(ResponseCode.SUCCESS);
 				return ctx;
 
 			}
@@ -92,8 +98,8 @@ public class DHTServer {
 				System.out.println("Put request");
 				DHTPutRequest put = ctx.getPayload(DHTPutRequest.class);
 				putValue(put.getKey(), put.getValue());
-
 				ctx.setResponse(new DHTReply(put.getKey(), put.getValue()));
+				ctx.setResponseCode(ResponseCode.SUCCESS);
 				return ctx;
 
 			}
