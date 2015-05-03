@@ -7,6 +7,7 @@ import java.util.Iterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Stopwatch;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
@@ -40,7 +41,7 @@ public class DHTServer {
 	public static void main(String[] args) throws Exception {
 		PropertiesFactory.setConfDir("anonBit");
 
-		System.out.println("Starting");
+		logger.info("Starting System");
 		Injector injector = Guice.createInjector(new AnonBitTModule(),
 				new DHTFakeServiceServerModule(), new DefaultsConfigModule());
 
@@ -48,9 +49,9 @@ public class DHTServer {
 		 * Now that we've got the injector, we can build objects.
 		 */
 		TorManager tor = injector.getInstance(TorManager.class);
-		System.out.println("Startin tor");
+		logger.trace("Startin tor");
 		// tor.startTor();
-		System.out.println("Tor started");
+		logger.info("Tor started");
 
 		PropertiesAccessor dhtProps = injector.getInstance(Key.get(
 				PropertiesAccessor.class, DHTProperties.class));
@@ -64,15 +65,15 @@ public class DHTServer {
 				.getInstance(TimmeeyHttpSimpleServer.class);
 		ServerSocket serverSocket = socketFactory.getServerSocket(DHTPort);
 		server.setServerSocket(serverSocket);
-		System.out.println("ready");
+		logger.info("DHTServer ready");
 
 		server.registerFilter(new HTTPFilter() {
 
 			@Override
 			public boolean doFilter(String path, HttpContext ctx) {
-				System.out.println(ctx.getPayload(HTTPRequest.class)
+				logger.error("AuthMap: {}", ctx.getPayload(HTTPRequest.class)
 						.getAuthenticationMap());
-				System.out.println("I'm a filter");
+				logger.trace("I'm a filter");
 				return true;
 			}
 		});
@@ -81,7 +82,7 @@ public class DHTServer {
 
 			@Override
 			public HttpContext handle(HttpContext ctx) {
-				System.out.println("Get request");
+				logger.trace("Get request");
 				DHTGetRequest request = ctx.getPayload(DHTGetRequest.class);
 				String value = getValue(request.getKey());
 				ctx.setResponse(new DHTReply(request.getKey(), value));
@@ -95,7 +96,7 @@ public class DHTServer {
 
 			@Override
 			public HttpContext handle(HttpContext ctx) {
-				System.out.println("Put request");
+				logger.trace("Put request");
 				DHTPutRequest put = ctx.getPayload(DHTPutRequest.class);
 				putValue(put.getKey(), put.getValue());
 				ctx.setResponse(new DHTReply(put.getKey(), put.getValue()));
@@ -114,7 +115,7 @@ public class DHTServer {
 						Thread.sleep(cleanupPeriod);
 						cleanup();
 					} catch (InterruptedException e) {
-						System.out.println("interrupted");
+						logger.trace("interrupted");
 						e.printStackTrace();
 					}
 
@@ -128,7 +129,7 @@ public class DHTServer {
 	public static void putValue(String key, String value) {
 
 		synchronized (writeLock) {
-			System.out.println("putting " + value);
+			logger.trace("putting " + value);
 			dht.put(key, value);
 			dhtTMO.put(key, System.currentTimeMillis());
 		}
@@ -138,7 +139,7 @@ public class DHTServer {
 	public static String getValue(String key) {
 		synchronized (readLock) {
 			String value = dht.get(key);
-			System.out.println("Reading " + key);
+			logger.trace("Reading " + key);
 			dhtTMO.put(key, System.currentTimeMillis());
 			return value;
 		}
@@ -153,8 +154,9 @@ public class DHTServer {
 	private static void cleanup() throws InterruptedException {
 		synchronized (writeLock) {
 			synchronized (readLock) {
+				Stopwatch stop = Stopwatch.createStarted();
 				int deleted = 0;
-				System.out.println("Cleanup");
+				logger.trace("Cleanup started");
 				long now = System.currentTimeMillis();
 				for (Iterator iterator = dht.keySet().iterator(); iterator
 						.hasNext();) {
@@ -167,8 +169,10 @@ public class DHTServer {
 					}
 
 				}
-				System.out.println("Deleted: " + deleted);
-				Thread.sleep(1000);
+				stop.stop();
+				logger.debug("Cleanup completed. Took {} and deleted: {}",
+						stop.toString(), deleted);
+
 			}
 		}
 

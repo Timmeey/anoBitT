@@ -64,13 +64,6 @@ public class AnonBitTModule extends AbstractModule {
 			bind(PropertiesAccessor.class).annotatedWith(DHTProperties.class)
 					.toInstance(PropertiesFactory.getPropertiesAccessor("dht"));
 
-			bind(SocketFactory.class).annotatedWith(AnonSocketFactory.class)
-					.to(AnonSocketFactoryImpl.class).asEagerSingleton();
-			;
-			bind(SocketFactory.class).annotatedWith(NonAnonSocketFactory.class)
-					.to(SocketFactoryImpl.class).asEagerSingleton();
-			;
-
 			bind(TorManager.class).asEagerSingleton();
 			;
 

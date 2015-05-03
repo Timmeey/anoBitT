@@ -1,4 +1,4 @@
-package de.timmeey.anoBitT.peerGroup.management;
+package de.timmeey.anoBitT.peerGroup.application;
 
 import java.util.ArrayList;
 import java.util.List;

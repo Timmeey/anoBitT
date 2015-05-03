@@ -1,0 +1,14 @@
+
+  
+  <configuration>
+  
+    <!-- sends logs to logback-beagle -->
+  <consolePlugin />
+  
+  <logger name="de.timmeey.anoBitT" level="trace"/>
+  
+  <root level="WARN">
+  </root>
+  
+
+</configuration>

@@ -1,26 +1,29 @@
-package de.timmeey.anoBitT.peerGroup.management;
+package de.timmeey.anoBitT.peerGroup.application;
 
 import org.apache.commons.lang3.RandomStringUtils;
 
 import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.peerGroup.PeerGroup;
+import de.timmeey.anoBitT.tor.KeyPair;
 
 public class PeerGroupApplicationOffer {
 	private final String secretOneTimePassword;
 	private final PeerGroup betreffendePeerGroup;
 	private final long created;
 	private final long duration;
+	private final String ownOnionAddr;
 	private final DHTService dhtService;
 
 	protected PeerGroupApplicationOffer(DHTService dhtService, long duration,
-			PeerGroup peerGroup, String ownOnionAddress) {
+			PeerGroup peerGroup, String ownOnionAddr) {
 		this.secretOneTimePassword = RandomStringUtils.randomAlphanumeric(20);
 		this.betreffendePeerGroup = peerGroup;
 		this.created = System.currentTimeMillis();
 		this.duration = duration;
 		this.dhtService = dhtService;
-		this.dhtService.put(getSecretOneTimePasswordHash(), ownOnionAddress,
-				false);
+		this.ownOnionAddr = ownOnionAddr;
+		this.dhtService.put(getSecretOneTimePasswordHash(),
+				getSecuredOwnOnionAddress(), false);
 
 	}
 
@@ -35,8 +38,15 @@ public class PeerGroupApplicationOffer {
 	}
 
 	public String getSecretOneTimePasswordHash() {
-		return de.timmeey.libTimmeey.hash.Hashing.sha512(getSecretOneTimePassword());
+		return de.timmeey.libTimmeey.hash.Hashing
+				.sha512(getSecretOneTimePassword());
 
+	}
+
+	public String getSecuredOwnOnionAddress() {
+		String onionSecuredWithOTP = de.timmeey.libTimmeey.hash.Hashing
+				.sha512(secretOneTimePassword + ownOnionAddr);
+		return String.format("%s:%s", onionSecuredWithOTP, ownOnionAddr);
 	}
 
 	public PeerGroup getBetreffendePeerGroup() {
