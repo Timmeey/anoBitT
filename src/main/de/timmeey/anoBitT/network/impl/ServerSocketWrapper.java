@@ -21,8 +21,12 @@ import java.net.*;
 import org.silvertunnel_ng.netlib.api.NetSocket;
 import org.silvertunnel_ng.netlib.api.impl.Socket2NetSocket;
 import org.silvertunnel_ng.netlib.layer.tor.TorNetServerSocket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServerSocketWrapper extends Thread {
+	private static final Logger logger = LoggerFactory
+			.getLogger(ServerSocketWrapper.class);
 	private ServerSocket torSocket;
 	private int localHostPort;
 
@@ -37,10 +41,10 @@ public class ServerSocketWrapper extends Thread {
 		while (true) {
 			Socket clientSocket;
 			try {
-				System.out.println("Waiting to accept");
+				logger.trace("Waiting to accept");
 				clientSocket = torSocket.accept();
 
-				System.out.println("Accepted");
+				logger.debug("Accepted");
 				ClientThread clientThread = new ClientThread(clientSocket,
 						localHostPort);
 				clientThread.start();
@@ -118,7 +122,7 @@ public class ServerSocketWrapper extends Thread {
 		 * and to finish their execution.
 		 */
 		public synchronized void connectionBroken() {
-			System.out.println("Closing forwarding socket");
+			logger.debug("Closing forwarding socket");
 			try {
 				mServerSocket.close();
 			} catch (Exception e) {

@@ -15,6 +15,8 @@ import org.silvertunnel_ng.netlib.layer.tor.TorHiddenServicePrivateNetAddress;
 import org.silvertunnel_ng.netlib.layer.tor.TorNetLayerUtil;
 import org.silvertunnel_ng.netlib.layer.tor.util.Encryption;
 import org.silvertunnel_ng.netlib.layer.tor.util.RSAKeyPair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -26,6 +28,8 @@ import de.timmeey.libTimmeey.properties.PropertiesAccessor;
 
 @Singleton
 public class TorManager {
+	private static final Logger logger = LoggerFactory
+			.getLogger(TorManager.class);
 
 	private KeyPair keyPair;
 	private NetLayer torNetLayer;
@@ -52,7 +56,7 @@ public class TorManager {
 		// if (torNetLayer.getStatus().getReadyIndicator() != lastStatus) {
 		// lastStatus = torNetLayer.getStatus()
 		// .getReadyIndicator();
-		// System.out.println(torNetLayer.getStatus());
+		// logger.trace(torNetLayer.getStatus());
 		// }
 		// if (torNetLayer.getStatus().getReadyIndicator() == 1) {
 		// break;
@@ -88,7 +92,7 @@ public class TorManager {
 						torProps.getProperty("torHiddenServicePrivateKey"),
 						torProps.getProperty("hiddenServiceHostName"), true);
 
-		System.out.println("Waiting for tor to complete");
+		logger.info("Waiting for tor to complete");
 		torNetLayer.waitUntilReady();
 
 		// get the name service the corresponds to the netLayer
@@ -132,6 +136,7 @@ public class TorManager {
 	 * @throws IOException
 	 */
 	private boolean isAnonymSelfTest() throws IOException {
+		logger.info("Starting anonymity Test");
 		String urlStr = "http://checkip.amazonaws.com/";
 		NetlibURLStreamHandlerFactory tmp = new NetlibURLStreamHandlerFactory(
 				true);
@@ -145,14 +150,14 @@ public class TorManager {
 				whatIsMyIp.openStream()));
 
 		String ip = in.readLine(); // you get the IP as a String
-		System.out.println("nonPrivate ip: " + ip);
+		logger.info("nonPrivate ip: " + ip);
 
 		URL whatIsMyPrivateIp = new URL("http://checkip.amazonaws.com/");
 		BufferedReader privateIn = new BufferedReader(new InputStreamReader(
 				whatIsMyPrivateIp.openStream()));
 
 		String privateIp = privateIn.readLine(); // you get the IP as a String
-		System.out.println("Private ip: " + privateIp);
+		logger.info("Private ip: " + privateIp);
 
 		return (!ip.equalsIgnoreCase(privateIp));
 	}
