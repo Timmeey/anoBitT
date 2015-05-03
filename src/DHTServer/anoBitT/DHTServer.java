@@ -16,6 +16,7 @@ import de.timmeey.anoBitT.config.AnonBitTModule;
 import de.timmeey.anoBitT.config.DefaultsConfigModule;
 import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
 import de.timmeey.anoBitT.config.GuiceAnnotations.NonAnonSocketFactory;
+import de.timmeey.anoBitT.config.SocketFactoryDev_nonAnon;
 import de.timmeey.anoBitT.tor.TorManager;
 import de.timmeey.libTimmeey.networking.SocketFactory;
 import de.timmeey.libTimmeey.networking.communicationServer.HTTPFilter;
@@ -43,7 +44,8 @@ public class DHTServer {
 
 		logger.info("Starting System");
 		Injector injector = Guice.createInjector(new AnonBitTModule(),
-				new DHTFakeServiceServerModule(), new DefaultsConfigModule());
+				new DHTFakeServiceServerModule(), new DefaultsConfigModule(),
+				new SocketFactoryDev_nonAnon());
 
 		/*
 		 * Now that we've got the injector, we can build objects.

@@ -49,28 +49,28 @@ public class TorManager {
 		NameServiceGlobalUtil.initNameService();
 
 		torNetLayer = NetFactory.getInstance().getNetLayerById(NetLayerIDs.TOR);
-		// new Thread(new Runnable() {
-		// public void run() {
-		// double lastStatus = -1;
-		// while (true) {
-		// if (torNetLayer.getStatus().getReadyIndicator() != lastStatus) {
-		// lastStatus = torNetLayer.getStatus()
-		// .getReadyIndicator();
-		// logger.trace(torNetLayer.getStatus());
-		// }
-		// if (torNetLayer.getStatus().getReadyIndicator() == 1) {
-		// break;
-		// }
-		// try {
-		// Thread.sleep(5);
-		// } catch (InterruptedException e) {
-		// // TODO Auto-generated catch block
-		// e.printStackTrace();
-		// }
-		//
-		// }
-		// }
-		// }).start();
+		new Thread(new Runnable() {
+			public void run() {
+				double lastStatus = -1;
+				while (true) {
+					if (torNetLayer.getStatus().getReadyIndicator() != lastStatus) {
+						lastStatus = torNetLayer.getStatus()
+								.getReadyIndicator();
+						logger.info("", torNetLayer.getStatus());
+					}
+					if (torNetLayer.getStatus().getReadyIndicator() == 1) {
+						break;
+					}
+					try {
+						Thread.sleep(5);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+				}
+			}
+		}).start();
 
 		TorNetLayerUtil torNetLayerUtil = TorNetLayerUtil.getInstance();
 
@@ -94,6 +94,7 @@ public class TorManager {
 
 		logger.info("Waiting for tor to complete");
 		torNetLayer.waitUntilReady();
+		logger.info("Tor ready");
 
 		// get the name service the corresponds to the netLayer
 		NetAddressNameService ns = torNetLayer.getNetAddressNameService();

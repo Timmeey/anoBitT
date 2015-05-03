@@ -8,6 +8,7 @@ import com.google.inject.Injector;
 
 import de.timmeey.anoBitT.config.AnonBitTModule;
 import de.timmeey.anoBitT.config.DefaultsConfigModule;
+import de.timmeey.anoBitT.config.SocketFactoryDev_nonAnon;
 import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
 import de.timmeey.anoBitT.tor.TorManager;
@@ -24,7 +25,8 @@ public class ConsoleClient {
 		System.setProperty("http.keepAlive", "true");
 		PropertiesFactory.setConfDir("anonBit");
 		Injector injector = Guice.createInjector(new AnonBitTModule(),
-				new DHTFakeServiceServerModule(), new DefaultsConfigModule());
+				new DHTFakeServiceServerModule(), new DefaultsConfigModule(),
+				new SocketFactoryDev_nonAnon());
 		dht = injector.getInstance(DHTService.class);
 		// injector.getInstance(TorManager.class).startTor();
 	}
