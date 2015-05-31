@@ -18,6 +18,8 @@ import com.google.common.collect.Sets;
 
 import de.timmeey.anoBitT.main;
 import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
+import de.timmeey.anoBitT.tor.KeyPair;
+import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestService;
 
 public class PeerGroup {
 	private static final Logger logger = LoggerFactory
@@ -26,10 +28,16 @@ public class PeerGroup {
 	private final UUID groupId;
 	private Set<PeerGroupMember> members;
 	private final int MAXWAINTINGFACTOR = 15;
+	private final KeyPair keyPair;
+	private final HTTPRequestService requestService;
 
-	public PeerGroup(String name) {
+	public PeerGroup(String name, KeyPair keyPair,
+			HTTPRequestService requestService) {
+
 		this.groupId = UUID.randomUUID();
 		members = Sets.newHashSet();
+		this.keyPair = keyPair;
+		this.requestService = requestService;
 	}
 
 	/**
@@ -134,8 +142,8 @@ public class PeerGroup {
 	private Future<PeerGroupUpdateResponse> getUpdatedMemberListFromMebmber(
 			PeerGroupMember m) {
 		PeerGroupUpdateRequest request = new PeerGroupUpdateRequest(m,
-				main.keyPair);
-		return main.requestService.send(request, request.getResponseType(),
+				this.keyPair);
+		return this.requestService.send(request, request.getResponseType(),
 				8888);
 	}
 

@@ -7,17 +7,17 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.timmeey.anoBitT.network.SockerWrapperFactory;
 import de.timmeey.libTimmeey.networking.SocketFactory;
 
-@Singleton
 public class SocketFactoryImpl implements SocketFactory, SockerWrapperFactory {
 	private final Map<String, Socket> openConnections = new ConcurrentHashMap<String, Socket>();
+	private static Logger logger = LoggerFactory
+			.getLogger(SocketFactoryImpl.class);
 
-	@Inject
 	public SocketFactoryImpl() {
 
 	}
@@ -54,10 +54,14 @@ public class SocketFactoryImpl implements SocketFactory, SockerWrapperFactory {
 	 */
 	public Socket getSocket(String remoteHostname, int remotePort)
 			throws UnknownHostException, IOException {
-		Socket socket;
 
-		return new Socket(remoteHostname, remotePort);
+		logger.trace("Opening normal socket to {} at port {}", remoteHostname,
+				remotePort);
+		Socket socket = new Socket(remoteHostname, remotePort);
+		logger.trace("Socked opened to {} with port {}",
+				socket.getInetAddress(), socket.getPort());
+
+		return socket;
 
 	}
-
 }

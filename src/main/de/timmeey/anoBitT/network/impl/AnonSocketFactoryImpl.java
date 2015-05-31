@@ -13,33 +13,30 @@ import org.silvertunnel_ng.netlib.api.impl.NetSocket2Socket;
 import org.silvertunnel_ng.netlib.api.util.TcpipNetAddress;
 import org.silvertunnel_ng.netlib.layer.tor.TorHiddenServicePortPrivateNetAddress;
 import org.silvertunnel_ng.netlib.layer.tor.TorHiddenServicePrivateNetAddress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import de.timmeey.anoBitT.network.SockerWrapperFactory;
 import de.timmeey.libTimmeey.exceptions.unchecked.NotYetInitializedException;
 import de.timmeey.libTimmeey.networking.SocketFactory;
 
-@Singleton
 public class AnonSocketFactoryImpl implements SocketFactory,
 		SockerWrapperFactory {
 	private TorHiddenServicePrivateNetAddress hiddenAddress;
 	private NetLayer netLayer;
 	private final Map<String, Socket> openConnections = new ConcurrentHashMap<String, Socket>();
+	private static Logger logger = LoggerFactory
+			.getLogger(AnonSocketFactoryImpl.class);
 
-	@Inject
-	public AnonSocketFactoryImpl() {
-		this.hiddenAddress = null;
-
-	}
-
-	// For Security reasons this Factory needs a setter so TorManager does not
-	// have to expose the private key
-	public AnonSocketFactoryImpl setHiddenAddress(
+	public AnonSocketFactoryImpl(NetLayer torNetLayer,
 			TorHiddenServicePrivateNetAddress hiddenAddress) {
-		this.hiddenAddress = hiddenAddress;
-		return this;
+		this.hiddenAddress = checkNotNull(hiddenAddress);
+		this.netLayer = checkNotNull(torNetLayer);
+		logger.debug("Server Sockets will listen on {}",
+				hiddenAddress.getPublicOnionHostname());
+
 	}
 
 	/**
@@ -84,6 +81,8 @@ public class AnonSocketFactoryImpl implements SocketFactory,
 			throw new NotYetInitializedException(
 					"Socketfactory is not yet initialized");
 
+		logger.trace("Opening normal socket to {} at port {}", host, port);
+
 		Socket socket;
 
 		TcpipNetAddress remoteAddress = new TcpipNetAddress(host, port);
@@ -97,8 +96,4 @@ public class AnonSocketFactoryImpl implements SocketFactory,
 
 	}
 
-	public void setNetLayer(NetLayer torNetLayer) {
-		this.netLayer = netLayer;
-
-	}
 }

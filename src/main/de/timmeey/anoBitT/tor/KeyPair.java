@@ -1,7 +1,10 @@
 package de.timmeey.anoBitT.tor;
 
+import java.security.interfaces.RSAPublicKey;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.silvertunnel_ng.netlib.layer.tor.TorHiddenServicePrivateNetAddress;
 
 import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
 
@@ -18,22 +21,18 @@ import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
  *
  */
 public class KeyPair {
-	private final String privateKey;
-	private final String publicKey;
-	private final String onionAddress;
+	private final TorHiddenServicePrivateNetAddress onionAddress;
 
-	protected KeyPair(String publicKey, String privateKey, String onionAddress) {
-		this.publicKey = publicKey;
-		this.privateKey = privateKey;
+	protected KeyPair(TorHiddenServicePrivateNetAddress onionAddress) {
 		this.onionAddress = onionAddress;
 	}
 
-	public String getPublicKey() {
-		return this.publicKey;
+	public RSAPublicKey getPublicKey() {
+		return this.onionAddress.getPublicKey();
 	}
 
 	public String getOnionAddress() {
-		return this.onionAddress;
+		return this.onionAddress.getPublicOnionHostname();
 	}
 
 	public String signMsg(String msg) {

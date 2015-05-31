@@ -1,4 +1,4 @@
-package anoBitT;
+package de.timmeey.anoBitT;
 
 import de.timmeey.libTimmeey.networking.communicationServer.HTTPResponse;
 

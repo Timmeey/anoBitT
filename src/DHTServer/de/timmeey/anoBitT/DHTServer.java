@@ -1,4 +1,4 @@
-package anoBitT;
+package de.timmeey.anoBitT;
 
 import java.net.ServerSocket;
 import java.util.HashMap;
@@ -8,23 +8,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import com.google.inject.Key;
+import com.google.gson.Gson;
 
-import de.timmeey.anoBitT.config.AnonBitTModule;
-import de.timmeey.anoBitT.config.DefaultsConfigModule;
-import de.timmeey.anoBitT.config.GuiceAnnotations.DHTProperties;
-import de.timmeey.anoBitT.config.GuiceAnnotations.NonAnonSocketFactory;
-import de.timmeey.anoBitT.config.SocketFactoryDev_nonAnon;
+import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
 import de.timmeey.anoBitT.tor.TorManager;
+import de.timmeey.anoBitT.util.GsonSerializer;
+import de.timmeey.libTimmeey.networking.NetSerializer;
 import de.timmeey.libTimmeey.networking.SocketFactory;
 import de.timmeey.libTimmeey.networking.communicationServer.HTTPFilter;
 import de.timmeey.libTimmeey.networking.communicationServer.HTTPRequest;
+import de.timmeey.libTimmeey.networking.communicationServer.HTTPResponse.ResponseCode;
 import de.timmeey.libTimmeey.networking.communicationServer.HttpContext;
 import de.timmeey.libTimmeey.networking.communicationServer.HttpHandler;
 import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleServer;
-import de.timmeey.libTimmeey.networking.communicationServer.HTTPResponse.ResponseCode;
 import de.timmeey.libTimmeey.properties.PropertiesAccessor;
 import de.timmeey.libTimmeey.properties.PropertiesFactory;
 
@@ -39,34 +35,33 @@ public class DHTServer {
 	private static final long minRetention = 1000 * 60 * 2; // 1 hour
 	private static final long cleanupPeriod = 1000 * 60 * 1; // 1 Minute
 
+	private static final NetSerializer gson = new GsonSerializer();
+
 	public static void main(String[] args) throws Exception {
 		PropertiesFactory.setConfDir("anonBit");
 
 		logger.info("Starting System");
-		Injector injector = Guice.createInjector(new AnonBitTModule(),
-				new DHTFakeServiceServerModule(), new DefaultsConfigModule(),
-				new SocketFactoryDev_nonAnon());
 
 		/*
 		 * Now that we've got the injector, we can build objects.
 		 */
-		TorManager tor = injector.getInstance(TorManager.class);
-		logger.trace("Startin tor");
-		// tor.startTor();
+		TorManager tor = new TorManager(
+				PropertiesFactory.getPropertiesAccessor("tor"));
+		logger.trace("Starting tor");
+		tor.startTor();
 		logger.info("Tor started");
 
-		PropertiesAccessor dhtProps = injector.getInstance(Key.get(
-				PropertiesAccessor.class, DHTProperties.class));
-
-		SocketFactory socketFactory = injector.getInstance(Key.get(
-				SocketFactory.class, NonAnonSocketFactory.class));
+		PropertiesAccessor dhtProps = PropertiesFactory
+				.getPropertiesAccessor("dht");
+		SocketFactory socketFactory = tor.getTorSocketFactory();
+		// SocketFactory socketFactory = new SocketFactoryImpl();
 		int DHTPort = Integer
 				.parseInt(dhtProps.getProperty("DHTPort", "62352"));
-
-		TimmeeyHttpSimpleServer server = injector
-				.getInstance(TimmeeyHttpSimpleServer.class);
 		ServerSocket serverSocket = socketFactory.getServerSocket(DHTPort);
-		server.setServerSocket(serverSocket);
+
+		TimmeeyHttpSimpleServer server = new TimmeeyHttpSimpleServer(gson,
+				serverSocket);
+		server.startServer();
 		logger.info("DHTServer ready");
 
 		server.registerFilter(new HTTPFilter() {

@@ -3,22 +3,17 @@ package de.timmeey.anoBitT.peerGroup.application;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-
 import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.peerGroup.PeerGroup;
 import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.libTimmeey.properties.PropertiesAccessor;
 
-@Singleton
 public class PeerGroupApplicationManager {
 	private final DHTService dhtService;
 	private final PropertiesAccessor props;
 	private final List<PeerGroupApplicationOffer> offers = new ArrayList<PeerGroupApplicationOffer>();
 	private final KeyPair keyPair;
 
-	@Inject
 	PeerGroupApplicationManager(DHTService dhtService,
 			PropertiesAccessor properties, KeyPair keyPair) {
 		this.dhtService = dhtService;

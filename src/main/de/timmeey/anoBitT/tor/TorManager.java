@@ -18,30 +18,26 @@ import org.silvertunnel_ng.netlib.layer.tor.util.RSAKeyPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-
-import de.timmeey.anoBitT.config.GuiceAnnotations.TorProperties;
 import de.timmeey.anoBitT.exceptions.NotAnonymException;
 import de.timmeey.anoBitT.network.impl.AnonSocketFactoryImpl;
+import de.timmeey.libTimmeey.exceptions.unchecked.NotYetInitializedException;
+import de.timmeey.libTimmeey.networking.SocketFactory;
 import de.timmeey.libTimmeey.properties.PropertiesAccessor;
 
-@Singleton
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class TorManager {
 	private static final Logger logger = LoggerFactory
 			.getLogger(TorManager.class);
 
 	private KeyPair keyPair;
 	private NetLayer torNetLayer;
-	private final AnonSocketFactoryImpl sockFac;
+	private TorHiddenServicePrivateNetAddress hiddenAddress;
 	private final PropertiesAccessor torProps;
 
-	@Inject
-	TorManager(@TorProperties PropertiesAccessor torProps,
-			AnonSocketFactoryImpl sockFac) {
+	public TorManager(PropertiesAccessor torProps) {
 		this.keyPair = null;
-		this.sockFac = sockFac;
-		this.torProps = torProps;
+		this.torProps = checkNotNull(torProps);
 
 	}
 
@@ -80,7 +76,7 @@ public class TorManager {
 					hiddenAddress1.getPublicOnionHostname());
 		}
 
-		TorHiddenServicePrivateNetAddress hiddenAddress = torNetLayerUtil
+		this.hiddenAddress = torNetLayerUtil
 				.parseTorHiddenServicePrivateNetAddressFromStrings(
 						torProps.getProperty("torHiddenServicePrivateKey"),
 						torProps.getProperty("hiddenServiceHostName"), true);
@@ -95,12 +91,7 @@ public class TorManager {
 		// redirect to the selected name service implementation
 		NameServiceGlobalUtil.setIpNetAddressNameService(ns);
 
-		sockFac.setHiddenAddress(hiddenAddress);
-		sockFac.setNetLayer(torNetLayer);
-
-		this.keyPair = new KeyPair(hiddenAddress.getPublicKey().toString(),
-				hiddenAddress.getPrivateKey().toString(),
-				hiddenAddress.getPublicOnionHostname());
+		this.keyPair = new KeyPair(hiddenAddress);
 
 		NetlibURLStreamHandlerFactory tmp = new NetlibURLStreamHandlerFactory(
 				true);
@@ -111,8 +102,6 @@ public class TorManager {
 			logger.error("Anonymity status test failed. Anonym IP seems to be the same like your IP. Aborting everything.");
 			// Something went terribly wrong here. We are not communicating
 			// anonymous
-			sockFac.setHiddenAddress(null);
-			sockFac.setNetLayer(null);
 			this.keyPair = null;
 			throw new NotAnonymException();
 		}
@@ -156,4 +145,17 @@ public class TorManager {
 
 		return (!ip.equalsIgnoreCase(privateIp));
 	}
+
+	public NetLayer getNetLayer() {
+		return this.torNetLayer;
+	}
+
+	public SocketFactory getTorSocketFactory() {
+		if (this.torNetLayer == null || this.hiddenAddress == null) {
+			throw new NotYetInitializedException(
+					"Tor service not yet initialized");
+		}
+		return new AnonSocketFactoryImpl(torNetLayer, hiddenAddress);
+	}
+
 }

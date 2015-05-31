@@ -1,26 +1,18 @@
-package anoBitT;
+package de.timmeey.anoBitT.peerGroup;
 
+import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
+import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.libTimmeey.networking.communicationServer.HTTPRequest;
 import de.timmeey.libTimmeey.networking.communicationServer.HttpHandler;
 import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleServer;
 
-public class DHTPutRequest extends HTTPRequest<DHTReply> {
-	transient private final static String path = "/dht-service/put";
-	final String key;
-	final String value;
+public class PeerGroupUpdateRequest extends
+		HTTPRequest<PeerGroupUpdateResponse> {
+	transient private final static String path = "/peerGroup/updateRequest";
 
-	public DHTPutRequest(String hostname, String key, String value) {
-		super(hostname, path, DHTReply.class);
-		this.key = key;
-		this.value = value;
-	}
-
-	public String getKey() {
-		return key;
-	}
-
-	public String getValue() {
-		return value;
+	public PeerGroupUpdateRequest(PeerGroupMember recipient, KeyPair auth) {
+		super(recipient.getOnionAddress(), path, PeerGroupUpdateResponse.class);
+		super.setAuthenticationMap(auth.getAuthMapForMessage(recipient));
 	}
 
 	/**
