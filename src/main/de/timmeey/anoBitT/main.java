@@ -5,16 +5,22 @@ import java.io.IOException;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Key;
 
 import de.timmeey.anoBitT.communication.external.ExternalCommunicationHandler;
 import de.timmeey.anoBitT.config.AnonBitTModule;
 import de.timmeey.anoBitT.config.DefaultsConfigModule;
 import de.timmeey.anoBitT.config.SocketFactoryDev_nonAnon;
+import de.timmeey.anoBitT.config.GuiceAnnotations.ExternalHTTPRequestService;
+import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.anoBitT.tor.TorManager;
+import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestService;
 import de.timmeey.libTimmeey.properties.PropertiesFactory;
 
 public class main {
 	public static final String confDir = "/home/timmeey/.anoBitT/";
+	public static HTTPRequestService requestService;
+	public static KeyPair keyPair;
 
 	public static void main(String[] args) throws Exception {
 		firstConf();
@@ -31,7 +37,11 @@ public class main {
 		ExternalCommunicationHandler externalCom = injector
 				.getInstance(ExternalCommunicationHandler.class);
 
-		tor.startTor();
+		// tor.startTor();
+		keyPair = tor.getKeyPair();
+		requestService = injector.getInstance(Key.get(HTTPRequestService.class,
+				ExternalHTTPRequestService.class));
+		;
 		externalCom.startServer(8888);
 
 	}

@@ -23,19 +23,15 @@ import de.timmeey.libTimmeey.properties.PropertiesAccessor;
 
 public class DHTServiceFakeImpl implements DHTService {
 
-	private final SocketFactory socketFactory;
 	private final PropertiesAccessor props;
 	private final HTTPRequestService requestService;
 	private final int DHTPort;
 	private final String host;
 
 	@Inject
-	protected DHTServiceFakeImpl(
-			@NonAnonSocketFactory SocketFactory socketFactory,
-			@DHTProperties PropertiesAccessor props,
+	protected DHTServiceFakeImpl(@DHTProperties PropertiesAccessor props,
 			@ExternalHTTPRequestService HTTPRequestService requestService) {
 		this.props = props;
-		this.socketFactory = socketFactory;
 		this.requestService = requestService;
 		DHTPort = Integer.parseInt(props.getProperty("DHTPort", "62352"));
 		// this.host = props.getProperty("DHTHostname");

@@ -1,12 +1,17 @@
 package de.timmeey.anoBitT.peerGroup.application;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.peerGroup.PeerGroup;
 import de.timmeey.anoBitT.tor.KeyPair;
+import de.timmeey.anoBitT.tor.TorManager;
 
 public class PeerGroupApplicationOffer {
+	private static final Logger logger = LoggerFactory
+			.getLogger(PeerGroupApplicationOffer.class);
 	private final String secretOneTimePassword;
 	private final PeerGroup betreffendePeerGroup;
 	private final long created;
@@ -29,6 +34,7 @@ public class PeerGroupApplicationOffer {
 
 	protected void removeOffer() {
 		// remove the offer from dht, but this is optional
+		logger.debug("removeOffer() not yet implemented");
 		return;
 	}
 

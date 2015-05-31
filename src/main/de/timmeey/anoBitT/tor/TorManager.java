@@ -39,7 +39,7 @@ public class TorManager {
 	@Inject
 	TorManager(@TorProperties PropertiesAccessor torProps,
 			AnonSocketFactoryImpl sockFac) {
-		keyPair = null;
+		this.keyPair = null;
 		this.sockFac = sockFac;
 		this.torProps = torProps;
 
@@ -51,18 +51,11 @@ public class TorManager {
 		torNetLayer = NetFactory.getInstance().getNetLayerById(NetLayerIDs.TOR);
 		new Thread(new Runnable() {
 			public void run() {
-				double lastStatus = -1;
-				while (true) {
-					if (torNetLayer.getStatus().getReadyIndicator() != lastStatus) {
-						lastStatus = torNetLayer.getStatus()
-								.getReadyIndicator();
-						logger.info("", torNetLayer.getStatus());
-					}
-					if (torNetLayer.getStatus().getReadyIndicator() == 1) {
-						break;
-					}
+				while (torNetLayer.getStatus().getReadyIndicator() != 1) {
+					logger.info("Tor connection Status: {}",
+							torNetLayer.getStatus());
 					try {
-						Thread.sleep(5);
+						Thread.sleep(5000);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -115,6 +108,7 @@ public class TorManager {
 		if (isAnonymSelfTest()) {
 			return this;
 		} else {
+			logger.error("Anonymity status test failed. Anonym IP seems to be the same like your IP. Aborting everything.");
 			// Something went terribly wrong here. We are not communicating
 			// anonymous
 			sockFac.setHiddenAddress(null);
@@ -151,14 +145,14 @@ public class TorManager {
 				whatIsMyIp.openStream()));
 
 		String ip = in.readLine(); // you get the IP as a String
-		logger.info("nonPrivate ip: " + ip);
+		logger.info("Ip through TOR access: {}", ip);
 
-		URL whatIsMyPrivateIp = new URL("http://checkip.amazonaws.com/");
+		URL whatIsMyPrivateIp = new URL(urlStr);
 		BufferedReader privateIn = new BufferedReader(new InputStreamReader(
 				whatIsMyPrivateIp.openStream()));
 
 		String privateIp = privateIn.readLine(); // you get the IP as a String
-		logger.info("Private ip: " + privateIp);
+		logger.info("Real non-Tor IP: {}", privateIp);
 
 		return (!ip.equalsIgnoreCase(privateIp));
 	}

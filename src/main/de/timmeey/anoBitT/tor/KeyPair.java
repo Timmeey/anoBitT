@@ -1,5 +1,10 @@
 package de.timmeey.anoBitT.tor;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
+
 /**
  * The KeyPair class is intended to be used as a secure container to handle
  * private/public keys. It does not allow acces to the plain private key, but
@@ -39,6 +44,20 @@ public class KeyPair {
 	public String decryptMsg(String msg) {
 		return msg;
 		// TODO
+	}
+
+	public String encryptMsg(String msg) {
+		return msg;
+		// TODO
+	}
+
+	public Map<String, String> getAuthMapForMessage(PeerGroupMember recipient) {
+		Map<String, String> authMap = new HashMap<String, String>();
+		authMap.put("signedRecepient",
+				this.signMsg(recipient.getOnionAddress()));
+		authMap.put("sender", this.getOnionAddress());
+
+		return authMap;
 	}
 
 }

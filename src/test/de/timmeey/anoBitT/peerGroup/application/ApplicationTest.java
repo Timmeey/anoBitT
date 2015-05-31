@@ -16,7 +16,6 @@ import de.timmeey.anoBitT.dht.DHTService;
 @RunWith(MockitoJUnitRunner.class)
 public class ApplicationTest {
 
-	// assume there is a class MyDatabase
 	@Mock
 	DHTService dht;
 
