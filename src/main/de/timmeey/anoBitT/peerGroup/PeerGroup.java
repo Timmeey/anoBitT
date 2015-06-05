@@ -27,6 +27,7 @@ public class PeerGroup {
 	private String name;
 	private final UUID groupId;
 	private Set<PeerGroupMember> members;
+	private final Object MEMBERS_SYNC = new Object();
 	private final int MAXWAINTINGFACTOR = 15;
 	private final KeyPair keyPair;
 	private final HTTPRequestService requestService;
@@ -96,7 +97,7 @@ public class PeerGroup {
 	 * @return the peerGroup with the added member
 	 */
 	public PeerGroup addMember(PeerGroupMember member) {
-		synchronized (members) {
+		synchronized (MEMBERS_SYNC) {
 			this.members.add(member);
 			return this;
 		}
@@ -110,7 +111,7 @@ public class PeerGroup {
 	 * @return A Future with the updated PeerGroup
 	 */
 	public PeerGroup updateGroupMembers() {
-		synchronized (members) {
+		synchronized (MEMBERS_SYNC) {
 
 			List<Future<PeerGroupUpdateResponse>> memberFutureLists = members
 					.stream().map(m -> getUpdatedMemberListFromMebmber(m))

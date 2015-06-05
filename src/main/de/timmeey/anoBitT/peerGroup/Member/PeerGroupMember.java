@@ -35,6 +35,7 @@ public class PeerGroupMember {
 	}
 
 	public Future<PeerGroupMember> updateIpAddress() {
+		// TODO needs to be implemented
 		throw new NotYetImplementedException();
 	}
 
