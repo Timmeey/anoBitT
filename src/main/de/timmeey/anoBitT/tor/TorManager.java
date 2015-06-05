@@ -96,7 +96,18 @@ public class TorManager {
 		NetlibURLStreamHandlerFactory tmp = new NetlibURLStreamHandlerFactory(
 				true);
 		tmp.setNetLayerForHttpHttpsFtp(torNetLayer);
-		if (isAnonymSelfTest()) {
+		boolean testResult;
+		try {
+			testResult = isAnonymSelfTest();
+		} catch (Exception e) {
+			logger.error("Got Exception while testing anonymity. Aborting everything for security reasons!");
+			// Something went terribly wrong here. We are not communicating
+			// anonymous
+			this.keyPair = null;
+			throw new NotAnonymException();
+		}
+
+		if (testResult) {
 			return this;
 		} else {
 			logger.error("Anonymity status test failed. Anonym IP seems to be the same like your IP. Aborting everything.");
@@ -105,6 +116,7 @@ public class TorManager {
 			this.keyPair = null;
 			throw new NotAnonymException();
 		}
+
 	}
 
 	public KeyPair getKeyPair() {
