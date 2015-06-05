@@ -31,7 +31,6 @@ public class DHTServiceFakeImpl implements DHTService {
 		checkNotNull(props);
 		this.requestService = checkNotNull(requestService);
 		DHTPort = checkNotNull(Integer.parseInt(props.getProperty("DHTPort")));
-		// this.host = "localhost";
 
 		this.host = props.getProperty("DHTHostname");
 

@@ -1,6 +1,6 @@
 
 
-<configuration>
+<configuration scan="true" scanPeriod="5 seconds" >
 	<appender name="ROLLING_FILE"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<file>/tmp/anonBit.log</file>
@@ -16,9 +16,12 @@
 		</encoder>
 	</appender>
 
-	<logger name="de.timmeey" level="trace">
-	  	<appender-ref ref="ROLLING_FILE" />
-	
+
+	<logger name="de.timmeey.libTimmeey.pooling.SimpleObjectPool" level="debug">
+	  	<appender-ref ref="ROLLING_FILE" />	
+	</logger>
+		<logger name="de.timmeey" level="trace">
+	  	<appender-ref ref="ROLLING_FILE" />	
 	</logger>
 
 

@@ -55,8 +55,7 @@ public class DHTServer {
 				.getPropertiesAccessor("dht");
 		SocketFactory socketFactory = tor.getTorSocketFactory();
 		// SocketFactory socketFactory = new SocketFactoryImpl();
-		int DHTPort = Integer
-				.parseInt(dhtProps.getProperty("DHTPort", "62352"));
+		int DHTPort = Integer.parseInt(dhtProps.getProperty("DHTPort"));
 		ServerSocket serverSocket = socketFactory.getServerSocket(DHTPort);
 
 		TimmeeyHttpSimpleServer server = new TimmeeyHttpSimpleServer(gson,
