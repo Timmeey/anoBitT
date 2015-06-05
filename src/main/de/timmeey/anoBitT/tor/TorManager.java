@@ -154,7 +154,10 @@ public class TorManager {
 
 		String privateIp = privateIn.readLine(); // you get the IP as a String
 		logger.info("Real non-Tor IP: {}", privateIp);
-
+		if (ip == null) {
+			logger.error("Something went wrong, could not get ip address");
+			return false;
+		}
 		return (!ip.equalsIgnoreCase(privateIp));
 	}
 
