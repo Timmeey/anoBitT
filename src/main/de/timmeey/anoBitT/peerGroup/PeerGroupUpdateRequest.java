@@ -11,17 +11,17 @@ import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleSer
 public class PeerGroupUpdateRequest extends
 		HTTPRequest<PeerGroupUpdateResponse> {
 	transient private final static String path = "/peerGroup/updateRequest";
-	private final UUID peerGUuid;
+	private final UUID peerGroupUuid;
 
-	public UUID getPeerGUuid() {
-		return peerGUuid;
+	public UUID peerGroupUuid() {
+		return peerGroupUuid;
 	}
 
 	public PeerGroupUpdateRequest(PeerGroupMember recipient, KeyPair auth,
 			UUID peerGroupID) {
 		super(recipient.getOnionAddress(), path, PeerGroupUpdateResponse.class);
 		super.setAuthenticationMap(auth.getAuthMapForMessage(recipient));
-		this.peerGUuid = peerGroupID;
+		this.peerGroupUuid = peerGroupID;
 	}
 
 	/**

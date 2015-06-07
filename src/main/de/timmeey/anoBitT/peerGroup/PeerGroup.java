@@ -1,6 +1,8 @@
 package de.timmeey.anoBitT.peerGroup;
 
+import java.security.PublicKey;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -16,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import de.timmeey.anoBitT.main;
 import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
 import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestService;
@@ -32,6 +33,9 @@ public class PeerGroup {
 	private final HTTPRequestService requestService;
 	private final int port;
 
+	private final static Logger logger = LoggerFactory
+			.getLogger(PeerGroup.class);
+
 	public PeerGroup(String name, KeyPair keyPair,
 			HTTPRequestService requestService, int portToReachOtherNodes) {
 
@@ -41,6 +45,10 @@ public class PeerGroup {
 		this.requestService = requestService;
 		this.name = name;
 		this.port = portToReachOtherNodes;
+		PeerGroupMember myselfAsMember = new PeerGroupMember(
+				keyPair.getPublicKey(), keyPair.getOnionAddress(), this,
+				requestService, portToReachOtherNodes, keyPair);
+		this.addMember(myselfAsMember);
 	}
 
 	/**
@@ -48,7 +56,7 @@ public class PeerGroup {
 	 * 
 	 * @return the unique group name
 	 */
-	public UUID getGroupId() {
+	public UUID getUUID() {
 		return this.groupId;
 	}
 
@@ -100,6 +108,8 @@ public class PeerGroup {
 	 */
 	public PeerGroup addMember(PeerGroupMember member) {
 		synchronized (this) {
+			logger.info("Adding single group member: {}",
+					member.getOnionAddress());
 			this.members.add(member);
 			return this;
 		}
@@ -114,25 +124,28 @@ public class PeerGroup {
 	 */
 	public PeerGroup updateGroupMembers() {
 		synchronized (this) {
+			logger.debug("Updating groupMember");
+			this.updateOnlineStats();
 
 			List<Future<PeerGroupUpdateResponse>> memberFutureLists = members
-					.stream().map(m -> getUpdatedMemberListFromMebmber(m))
+					.stream().map(m -> getUpdatedMemberListFromMember(m))
 					.collect(Collectors.toList());
 
 			List<Set<PeerGroupMember>> memberLists = Lists.newArrayList();
 
 			long waitUntil = System.currentTimeMillis()
 					+ MAX_TIMEOUT_FOR_UPDATE_REPLIES * 1000;
-			for (Future<PeerGroupUpdateResponse> members : memberFutureLists) {
+			for (Future<PeerGroupUpdateResponse> updateRequest : memberFutureLists) {
 				try {
-					Set<PeerGroupMember> tmpSet = members
+					logger.trace("Waiting for updare request response");
+					Set<PeerGroupMember> tmpSet = updateRequest
 							.get(waitUntil - System.currentTimeMillis(),
 									TimeUnit.MILLISECONDS).getPeerGroup()
 							.getMembers();
 					memberLists.add(tmpSet);
 				} catch (InterruptedException | ExecutionException
 						| TimeoutException e) {
-					members.cancel(true);
+					updateRequest.cancel(true);
 					LOGGER.info(
 							"Could not get response from Member for new PeerGroupMember list. Exception was: {}",
 							e.getMessage());
@@ -144,9 +157,9 @@ public class PeerGroup {
 		}
 	}
 
-	private Future<PeerGroupUpdateResponse> getUpdatedMemberListFromMebmber(
-			PeerGroupMember m) {
-		PeerGroupUpdateRequest request = new PeerGroupUpdateRequest(m,
+	private Future<PeerGroupUpdateResponse> getUpdatedMemberListFromMember(
+			PeerGroupMember member) {
+		PeerGroupUpdateRequest request = new PeerGroupUpdateRequest(member,
 				this.keyPair, this.groupId);
 		return this.requestService.send(request, request.getResponseType(),
 				port);
@@ -159,6 +172,7 @@ public class PeerGroup {
 	 * @return A future with the updated peerGroup
 	 */
 	public PeerGroup updateOnlineStats() {
+		logger.debug("Updating ups for all member of group {}", name);
 		members.stream().parallel().forEach(PeerGroupMember::updateIpAddress);
 		return this;
 	}
@@ -179,4 +193,13 @@ public class PeerGroup {
 				.collect(Collectors.toSet());
 	}
 
+	public boolean isAuthMapFromAuthorizedMember(Map<String, String> authMap) {
+		boolean result = false;
+		Optional<PeerGroupMember> member = this
+				.getMember(authMap.get("sender"));
+		if (member.isPresent()) {
+			result = keyPair.verifyAuthMap(authMap, member.get());
+		}
+		return result;
+	}
 }

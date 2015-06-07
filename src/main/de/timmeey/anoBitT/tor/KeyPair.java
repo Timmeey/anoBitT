@@ -104,4 +104,12 @@ public class KeyPair {
 
 		return authMap;
 	}
+
+	public boolean verifyAuthMap(Map<String, String> authMap,
+			PeerGroupMember sendingMember) {
+		String signedRecipient = authMap.get("signedRecepient");
+		boolean result = verifySignature(getOnionAddress(),
+				Base64Helper.stringToByte(signedRecipient), sendingMember);
+		return result;
+	}
 }
