@@ -1,8 +1,8 @@
 package de.timmeey.anoBitT.peerGroup.Member;
 
+import java.security.PublicKey;
 import java.util.concurrent.Future;
 
-import de.timmeey.anoBitT.Authenticity.PublicKey;
 import de.timmeey.anoBitT.exceptions.NotOnlineException;
 import de.timmeey.libTimmeey.exceptions.unchecked.NotYetImplementedException;
 

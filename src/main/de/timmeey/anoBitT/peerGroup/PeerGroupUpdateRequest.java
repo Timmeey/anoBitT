@@ -1,5 +1,7 @@
 package de.timmeey.anoBitT.peerGroup;
 
+import java.util.UUID;
+
 import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
 import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.libTimmeey.networking.communicationServer.HTTPRequest;
@@ -9,10 +11,17 @@ import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleSer
 public class PeerGroupUpdateRequest extends
 		HTTPRequest<PeerGroupUpdateResponse> {
 	transient private final static String path = "/peerGroup/updateRequest";
+	private final UUID peerGUuid;
 
-	public PeerGroupUpdateRequest(PeerGroupMember recipient, KeyPair auth) {
+	public UUID getPeerGUuid() {
+		return peerGUuid;
+	}
+
+	public PeerGroupUpdateRequest(PeerGroupMember recipient, KeyPair auth,
+			UUID peerGroupID) {
 		super(recipient.getOnionAddress(), path, PeerGroupUpdateResponse.class);
 		super.setAuthenticationMap(auth.getAuthMapForMessage(recipient));
+		this.peerGUuid = peerGroupID;
 	}
 
 	/**

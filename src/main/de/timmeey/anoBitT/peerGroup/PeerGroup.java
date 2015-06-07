@@ -22,23 +22,25 @@ import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestService;
 
 public class PeerGroup {
-	private static final Logger logger = LoggerFactory
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(PeerGroup.class);
 	private String name;
 	private final UUID groupId;
 	private Set<PeerGroupMember> members;
-	private final Object MEMBERS_SYNC = new Object();
-	private final int MAXWAINTINGFACTOR = 15;
+	private static final int MAX_TIMEOUT_FOR_UPDATE_REPLIES = 15;
 	private final KeyPair keyPair;
 	private final HTTPRequestService requestService;
+	private final int port;
 
 	public PeerGroup(String name, KeyPair keyPair,
-			HTTPRequestService requestService) {
+			HTTPRequestService requestService, int portToReachOtherNodes) {
 
 		this.groupId = UUID.randomUUID();
 		members = Sets.newHashSet();
 		this.keyPair = keyPair;
 		this.requestService = requestService;
+		this.name = name;
+		this.port = portToReachOtherNodes;
 	}
 
 	/**
@@ -97,7 +99,7 @@ public class PeerGroup {
 	 * @return the peerGroup with the added member
 	 */
 	public PeerGroup addMember(PeerGroupMember member) {
-		synchronized (MEMBERS_SYNC) {
+		synchronized (this) {
 			this.members.add(member);
 			return this;
 		}
@@ -111,7 +113,7 @@ public class PeerGroup {
 	 * @return A Future with the updated PeerGroup
 	 */
 	public PeerGroup updateGroupMembers() {
-		synchronized (MEMBERS_SYNC) {
+		synchronized (this) {
 
 			List<Future<PeerGroupUpdateResponse>> memberFutureLists = members
 					.stream().map(m -> getUpdatedMemberListFromMebmber(m))
@@ -119,8 +121,8 @@ public class PeerGroup {
 
 			List<Set<PeerGroupMember>> memberLists = Lists.newArrayList();
 
-			long waitUntil = System.currentTimeMillis() + MAXWAINTINGFACTOR
-					* 1000;
+			long waitUntil = System.currentTimeMillis()
+					+ MAX_TIMEOUT_FOR_UPDATE_REPLIES * 1000;
 			for (Future<PeerGroupUpdateResponse> members : memberFutureLists) {
 				try {
 					Set<PeerGroupMember> tmpSet = members
@@ -131,7 +133,9 @@ public class PeerGroup {
 				} catch (InterruptedException | ExecutionException
 						| TimeoutException e) {
 					members.cancel(true);
-					logger.info("Could not get response from Member for new PeerGroupMember list");
+					LOGGER.info(
+							"Could not get response from Member for new PeerGroupMember list. Exception was: {}",
+							e.getMessage());
 				}
 			}
 			this.members = resolvePossibleConflicts(memberLists);
@@ -143,9 +147,9 @@ public class PeerGroup {
 	private Future<PeerGroupUpdateResponse> getUpdatedMemberListFromMebmber(
 			PeerGroupMember m) {
 		PeerGroupUpdateRequest request = new PeerGroupUpdateRequest(m,
-				this.keyPair);
+				this.keyPair, this.groupId);
 		return this.requestService.send(request, request.getResponseType(),
-				8888);
+				port);
 	}
 
 	/**
@@ -160,8 +164,8 @@ public class PeerGroup {
 	}
 
 	/**
-	 * Due to the restriction that there can't be removals of members, allways
-	 * the list with the most members is considered the most recent
+	 * Due to the restriction that there can't be removals of members, the most
+	 * recent list is the union of all received lists
 	 * 
 	 * @param memberLists
 	 * @return the most recent member list

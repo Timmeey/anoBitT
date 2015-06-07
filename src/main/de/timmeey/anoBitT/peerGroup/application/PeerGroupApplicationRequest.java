@@ -4,14 +4,14 @@ import de.timmeey.libTimmeey.networking.communicationServer.HTTPRequest;
 import de.timmeey.libTimmeey.networking.communicationServer.HttpHandler;
 import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleServer;
 
-public class Request extends HTTPRequest<Response> {
+public class PeerGroupApplicationRequest extends HTTPRequest<PeerGroupApplicationResponse> {
 	transient private final static String PATH = "/peerGroup/application/request";
 	private String secretOneTimePassword;
 	private String ownPublicKey;
 
-	protected Request(String host, String secretOneTimePassword,
+	protected PeerGroupApplicationRequest(String host, String secretOneTimePassword,
 			String ownPublicKey) {
-		super(host, PATH, Response.class);
+		super(host, PATH, PeerGroupApplicationResponse.class);
 		this.secretOneTimePassword = secretOneTimePassword;
 		this.ownPublicKey = ownPublicKey;
 	}

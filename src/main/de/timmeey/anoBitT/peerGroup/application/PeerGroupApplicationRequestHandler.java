@@ -6,11 +6,11 @@ import org.slf4j.LoggerFactory;
 import de.timmeey.libTimmeey.networking.communicationServer.HttpContext;
 import de.timmeey.libTimmeey.networking.communicationServer.HttpHandler;
 
-public class RequestHandler implements HttpHandler {
-	private final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
+public class PeerGroupApplicationRequestHandler implements HttpHandler {
+	private final Logger logger = LoggerFactory.getLogger(PeerGroupApplicationRequestHandler.class);
 	private final PeerGroupApplicationManager applicationManager;
 
-	public RequestHandler(PeerGroupApplicationManager applicationManager) {
+	public PeerGroupApplicationRequestHandler(PeerGroupApplicationManager applicationManager) {
 		this.applicationManager = applicationManager;
 
 	}

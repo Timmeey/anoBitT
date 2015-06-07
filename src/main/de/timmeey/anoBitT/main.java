@@ -206,4 +206,20 @@ public class main {
 		maintenanceTaskList.add(c);
 
 	}
+
+	public static void emergencyShutdown(String reason, Throwable e) {
+		try {
+
+			logger.error(
+					"Killing the application because an error occured: {}",
+					reason);
+			if (e != null) {
+				logger.error("An {} was provided: {}", e.getClass().toString(),
+						e.getMessage());
+			}
+		} finally {
+			System.exit(1);
+		}
+
+	}
 }

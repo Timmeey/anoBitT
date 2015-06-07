@@ -1,12 +1,28 @@
 package de.timmeey.anoBitT.tor;
 
+import java.io.UnsupportedEncodingException;
+import java.security.GeneralSecurityException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PublicKey;
+import java.security.SignatureException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.silvertunnel_ng.netlib.layer.tor.TorHiddenServicePrivateNetAddress;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
+import org.silvertunnel_ng.netlib.layer.tor.TorHiddenServicePrivateNetAddress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import de.timmeey.anoBitT.main;
 import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
+import de.timmeey.libTimmeey.crypto.Encryption;
+import de.timmeey.libTimmeey.util.Base64Helper;
 
 /**
  * The KeyPair class is intended to be used as a secure container to handle
@@ -21,13 +37,14 @@ import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
  *
  */
 public class KeyPair {
+	private static final Logger logger = LoggerFactory.getLogger(KeyPair.class);
 	private final TorHiddenServicePrivateNetAddress onionAddress;
 
 	protected KeyPair(TorHiddenServicePrivateNetAddress onionAddress) {
 		this.onionAddress = onionAddress;
 	}
 
-	public RSAPublicKey getPublicKey() {
+	public PublicKey getPublicKey() {
 		return this.onionAddress.getPublicKey();
 	}
 
@@ -35,28 +52,56 @@ public class KeyPair {
 		return this.onionAddress.getPublicOnionHostname();
 	}
 
-	public String signMsg(String msg) {
-		return msg;
-		// TODO
+	public byte[] signMsg(String msg) {
+		try {
+			return Encryption.sign(msg.getBytes("UTF-8"),
+					this.onionAddress.getPrivateKey());
+		} catch (InvalidKeyException | SignatureException
+				| NoSuchAlgorithmException | UnsupportedEncodingException e) {
+			main.emergencyShutdown(String.format(
+					"An error occured while signing the message: %s", msg), e);
+			return null;
+
+		}
 	}
 
-	public String decryptMsg(String msg) {
-		return msg;
-		// TODO
+	public boolean verifySignature(String message, byte[] digitalSignature,
+			PeerGroupMember member) {
+		boolean result = false;
+		try {
+			result = Encryption.checkSignature(message.getBytes("UTF-8"),
+					digitalSignature, member.getPublicKey());
+		} catch (InvalidKeyException | NoSuchAlgorithmException
+				| NoSuchProviderException | SignatureException
+				| UnsupportedEncodingException e) {
+			main.emergencyShutdown(
+					String.format(
+							"An error occured while verifying the message: %s, for member %s",
+							member.getOnionAddress()), e);
+			return false;
+
+		}
+		return result;
 	}
 
-	public String encryptMsg(String msg) {
-		return msg;
-		// TODO
+	public String decryptMsg(byte[] msg) {
+		try {
+			return new String(Encryption.decrypt(msg,
+					this.onionAddress.getPrivateKey()), "UTF-8");
+		} catch (InvalidKeyException | NoSuchAlgorithmException
+				| NoSuchPaddingException | IllegalBlockSizeException
+				| BadPaddingException | UnsupportedEncodingException e) {
+			main.emergencyShutdown("An error occured while encrypting.", e);
+			return null;
+		}
 	}
 
 	public Map<String, String> getAuthMapForMessage(PeerGroupMember recipient) {
 		Map<String, String> authMap = new HashMap<String, String>();
-		authMap.put("signedRecepient",
-				this.signMsg(recipient.getOnionAddress()));
+		authMap.put("signedRecepient", Base64Helper.byteToString(this
+				.signMsg(recipient.getOnionAddress())));
 		authMap.put("sender", this.getOnionAddress());
 
 		return authMap;
 	}
-
 }
