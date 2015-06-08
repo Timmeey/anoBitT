@@ -1,4 +1,4 @@
-package anoBitT;
+package de.timmeey.anoBitT.client;
 
 import java.io.IOException;
 import java.net.ServerSocket;

@@ -1,29 +1,65 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>anoBitT</groupId>
+	<groupId>de.timmeey</groupId>
 	<artifactId>anoBitT</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<repositories>
-		<repository>
-			<id>sonatype-nexus-snapshots</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-		</repository>
-	</repositories>
+
 	<build>
 		<sourceDirectory>src/main/</sourceDirectory>
+
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.1</version>
+				<version>3.3</version>
 				<configuration>
-					<source />
-					<target />
+					<source>1.8</source>
+					<target>1.8</target>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>2.3</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+							<transformers>
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>de.timmeey.anoBitT.main</mainClass>
+								</transformer>
+							</transformers>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
-
 	</build>
+
+
+	<!-- One-Jar is in the googlecode repository -->
+	<pluginRepositories>
+		<pluginRepository>
+			<id>onejar-maven-plugin.googlecode.com</id>
+			<url>http://onejar-maven-plugin.googlecode.com/svn/mavenrepo</url>
+		</pluginRepository>
+	</pluginRepositories>
 	<scm>
 		<url>https://github.com/Timmeey/anoBitT</url>
 		<developerConnection>Timmeey</developerConnection>
@@ -75,6 +111,11 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 			<version>1.7.12</version>
+		</dependency>
+		<dependency>
+			<groupId>de.timmeey</groupId>
+			<artifactId>libJava</artifactId>
+			<version>0.0.1-a</version>
 		</dependency>
 	</dependencies>
 

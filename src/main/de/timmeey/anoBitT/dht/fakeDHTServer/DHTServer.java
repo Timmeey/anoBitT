@@ -1,4 +1,4 @@
-package de.timmeey.anoBitT;
+package de.timmeey.anoBitT.dht.fakeDHTServer;
 
 import java.net.ServerSocket;
 import java.util.HashMap;

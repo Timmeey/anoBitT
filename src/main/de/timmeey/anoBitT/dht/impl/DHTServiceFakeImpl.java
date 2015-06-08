@@ -11,10 +11,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.timmeey.anoBitT.DHTGetRequest;
-import de.timmeey.anoBitT.DHTPutRequest;
-import de.timmeey.anoBitT.DHTReply;
 import de.timmeey.anoBitT.dht.DHTService;
+import de.timmeey.anoBitT.dht.fakeDHTServer.DHTGetRequest;
+import de.timmeey.anoBitT.dht.fakeDHTServer.DHTPutRequest;
+import de.timmeey.anoBitT.dht.fakeDHTServer.DHTReply;
 import de.timmeey.libTimmeey.exceptions.unchecked.NotYetImplementedException;
 import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestService;
 import de.timmeey.libTimmeey.properties.PropertiesAccessor;
