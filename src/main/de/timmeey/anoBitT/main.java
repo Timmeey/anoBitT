@@ -1,30 +1,31 @@
 package de.timmeey.anoBitT;
 
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.Gson;
-
+import asg.cliche.ShellFactory;
+import de.timmeey.anoBitT.client.ConsoleClient;
 import de.timmeey.anoBitT.communication.external.ExternalCommunicationHandler;
 import de.timmeey.anoBitT.dht.DHTService;
+import de.timmeey.anoBitT.dht.fakeDHTServer.DHTServer;
 import de.timmeey.anoBitT.dht.impl.DHTServiceFakeImpl;
 import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
+import de.timmeey.anoBitT.peerGroup.PeerGroupManager;
 import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.anoBitT.tor.TorManager;
 import de.timmeey.anoBitT.util.GsonSerializer;
@@ -32,7 +33,6 @@ import de.timmeey.libTimmeey.networking.NetSerializer;
 import de.timmeey.libTimmeey.networking.SocketFactory;
 import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestHandlerImpl;
 import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestService;
-import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleServer;
 import de.timmeey.libTimmeey.pooling.ObjectPool;
 import de.timmeey.libTimmeey.pooling.SimpleObjectPool;
 import de.timmeey.libTimmeey.pooling.Verifier;
@@ -56,6 +56,7 @@ public class main {
 	private static ExternalCommunicationHandler externalCom;
 	private static DHTService dhtService;
 	private static Timer maintenanceTimer;
+	private static PeerGroupManager peerGroupManager;
 
 	private static final List<Runnable> maintenanceTaskList = new ArrayList<Runnable>();
 
@@ -64,16 +65,45 @@ public class main {
 	private static final Logger logger = LoggerFactory.getLogger(main.class);
 
 	public static void main(String[] args) throws Exception {
+		// create Options object
+		Options options = new Options();
+
+		// add t option
+		options.addOption("init", false,
+				"switch whether to write new config files or not");
+		options.addOption("dhtServer", false,
+				"switch whether to run as DHTserver");
+
+		CommandLineParser parser = new DefaultParser();
+		CommandLine cmd = parser.parse(options, args);
+
 		initializeConfig();
-		// writeConfigs();
+		if (cmd.hasOption("init")) {
+			writeConfigs();
+		}
 
 		initializeNetwork();
-		initializeServer();
-		initializeRequestService();
-		initializeDHT();
-		initializeMaintenance();
 
-		logger.info("Initialization complete");
+		if (cmd.hasOption("dhtServer")) {
+			logger.debug("Running as DHTServer");
+			DHTServer.startDHTServer(torManager, dhtProps);
+		} else {
+			logger.debug("We are not running as DHT server");
+			initializeServer();
+			initializeRequestService();
+			initializeDHT();
+			initializeMaintenance();
+			initializePeerGroups();
+			initializeConsole(dhtService, peerGroupManager);
+
+			logger.info("Initialization complete");
+		}
+
+	}
+
+	private static void initializePeerGroups() {
+		peerGroupManager = new PeerGroupManager(keyPair, requestService,
+				Integer.parseInt(appProps.getProperty("externalCommPort")));
 
 	}
 
@@ -96,12 +126,12 @@ public class main {
 	private static void initializeNetwork() throws IOException,
 			InterruptedException {
 		logger.debug("Initializing Network, starting Tor");
-		TorManager tor = new TorManager(torProps);
-		tor.startTor();
-		keyPair = tor.getKeyPair();
+		torManager = new TorManager(torProps);
+		torManager.startTor();
+		keyPair = torManager.getKeyPair();
 
 		socketFactory = new SocketFactoryImpl();
-		torSocketFactory = tor.getTorSocketFactory();
+		torSocketFactory = torManager.getTorSocketFactory();
 		logger.debug("Network and Tor initialized");
 
 	}
@@ -171,6 +201,7 @@ public class main {
 	}
 
 	private static void writeConfigs() throws IOException {
+		logger.debug("Writing default config values");
 		appProps.addProperty("TORSOCKETIDLETIMOUT", (2 * 60 * 1000) + "");
 		appProps.addProperty("TORSOCKETPOOLCLEANUPTIME", (10 * 1000) + "");
 		appProps.addProperty("externalCommPort", "24361");
@@ -220,6 +251,27 @@ public class main {
 		} finally {
 			System.exit(1);
 		}
+
+	}
+
+	private static void initializeConsole(DHTService dht,
+			PeerGroupManager peerGroupManager) {
+
+		new Runnable() {
+
+			@Override
+			public void run() {
+				try {
+					ShellFactory.createConsoleShell("hello", "",
+							new ConsoleClient(peerGroupManager, dht))
+							.commandLoop();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					logger.error("Error in ClientShell: {}", e.getMessage());
+				}
+
+			}
+		}.run();
 
 	}
 }

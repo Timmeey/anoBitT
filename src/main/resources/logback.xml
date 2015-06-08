@@ -1,7 +1,7 @@
 
 
-<configuration scan="true" scanPeriod="5 seconds" >
-	<appender name="ROLLING_FILE"
+<configuration scan="true" scanPeriod="5 seconds">
+	<appender name="ROLLING_FILE_MAIN"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<file>/tmp/anonBit.log</file>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -16,12 +16,51 @@
 		</encoder>
 	</appender>
 
+	<appender name="ROLLING_FILE_SERVER"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>/tmp/anonBit_server.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!-- Daily rollover with compression -->
+			<fileNamePattern>application-log-%d{yyyy-MM-dd}.gz</fileNamePattern>
+			<!-- keep 30 days worth of history -->
+			<maxHistory>3</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{90} - %msg%n
+			</pattern>
+		</encoder>
+	</appender>
 
-	<logger name="de.timmeey.libTimmeey.pooling.SimpleObjectPool" level="debug">
-	  	<appender-ref ref="ROLLING_FILE" />	
+	<appender name="ROLLING_FILE_CLIENT"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>/tmp/anonBit_client.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!-- Daily rollover with compression -->
+			<fileNamePattern>application-log-%d{yyyy-MM-dd}.gz</fileNamePattern>
+			<!-- keep 30 days worth of history -->
+			<maxHistory>3</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{90} - %msg%n
+			</pattern>
+		</encoder>
+	</appender>
+
+
+	<logger name="de.timmeey.libTimmeey.pooling.SimpleObjectPool"
+		level="debug">
+		<appender-ref ref="ROLLING_FILE_MAIN" />
 	</logger>
-		<logger name="de.timmeey" level="trace">
-	  	<appender-ref ref="ROLLING_FILE" />	
+	<logger name="de.timmeey" level="trace">
+		<appender-ref ref="ROLLING_FILE_MAIN" />
+	</logger>
+	
+		<logger name="de.timmeey.anoBitT.client" level="trace">
+		<appender-ref ref="ROLLING_FILE_CLIENT" />
+	</logger>
+	
+		<logger name="de.timmeey.anoBitT.dht.fakeDHTServer" level="trace">
+		<appender-ref ref="ROLLING_FILE_SERVER" />
 	</logger>
 
 

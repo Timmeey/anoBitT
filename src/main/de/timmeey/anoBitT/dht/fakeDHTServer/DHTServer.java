@@ -7,6 +7,7 @@ import java.util.Iterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 
@@ -37,22 +38,13 @@ public class DHTServer {
 
 	private static final NetSerializer gson = new GsonSerializer();
 
-	public static void main(String[] args) throws Exception {
-		PropertiesFactory.setConfDir("anonBit");
+	public static void startDHTServer(TorManager tor,
+			PropertiesAccessor dhtProps) throws Exception {
+		Preconditions.checkNotNull(tor);
+		Preconditions.checkNotNull(dhtProps);
 
 		logger.info("Starting System");
 
-		/*
-		 * Now that we've got the injector, we can build objects.
-		 */
-		TorManager tor = new TorManager(
-				PropertiesFactory.getPropertiesAccessor("tor"));
-		logger.trace("Starting tor");
-		tor.startTor();
-		logger.info("Tor started");
-
-		PropertiesAccessor dhtProps = PropertiesFactory
-				.getPropertiesAccessor("dht");
 		SocketFactory socketFactory = tor.getTorSocketFactory();
 		// SocketFactory socketFactory = new SocketFactoryImpl();
 		int DHTPort = Integer.parseInt(dhtProps.getProperty("DHTPort"));
@@ -118,7 +110,8 @@ public class DHTServer {
 				}
 
 			}
-		};// .run();
+		}.run();
+		logger.info("DHTServer Running");
 
 	}
 
