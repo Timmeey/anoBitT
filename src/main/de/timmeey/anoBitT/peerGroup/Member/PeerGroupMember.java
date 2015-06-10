@@ -31,16 +31,16 @@ public class PeerGroupMember {
 	private final UUID peerGroup; // Cyclic data structures are not possible
 									// due to serialization
 	transient private static HTTPRequestService requestService;
-	private final int port;
 	transient private static KeyPair localKeyPair;
+	private static int port;
+
 	private static final int REQUEST_WAIT_TIMEOUT = 30;// Seconds
 
 	public PeerGroupMember(PublicKey publicKey, String onionAddress,
-			PeerGroup peerGroup, int port, String ip) {
+			PeerGroup peerGroup, String ip) {
 		this.publicKey = new TiPublicKey(publicKey);
 		this.onionAddress = onionAddress;
 		this.peerGroup = peerGroup.getUUID();
-		this.port = port;
 		this.ipAddress = ip;
 
 	}
@@ -129,6 +129,15 @@ public class PeerGroupMember {
 			PeerGroupMember.localKeyPair = keyPair;
 		} else {
 			PeerGroupMember.logger.error("keyPair was already set");
+		}
+	}
+
+	public static void setPort(int port) {
+		Preconditions.checkNotNull(port);
+		if (PeerGroupMember.port == 0) {
+			PeerGroupMember.port = port;
+		} else {
+			PeerGroupMember.logger.error("port was already set");
 		}
 	}
 

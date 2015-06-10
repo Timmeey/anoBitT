@@ -1,14 +1,17 @@
 package de.timmeey.anoBitT.client;
 
+import java.util.Optional;
 import java.util.UUID;
-
-import com.google.gson.Gson;
 
 import asg.cliche.Command;
 import asg.cliche.Param;
+
+import com.google.gson.Gson;
+
 import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.exceptions.NotOnlineException;
 import de.timmeey.anoBitT.peerGroup.PeerGroup;
+import de.timmeey.anoBitT.peerGroup.PeerGroupApplicationOffer;
 import de.timmeey.anoBitT.peerGroup.PeerGroupManager;
 import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
 
@@ -83,6 +86,40 @@ public class ConsoleClient {
 		group.updateGroupMembers();
 
 		return group;
+	}
+
+	@Command(description = "Creates a new application offer")
+	public void createApplicationOffer(String uuid) {
+		Optional<PeerGroup> group = peerGroupManager.getPeerGroupByUUID(UUID
+				.fromString(uuid));
+		if (group.isPresent()) {
+			PeerGroupApplicationOffer offer = group.get()
+					.createApplicationOffer();
+			System.out.println(String.format("Key is: %s",
+					offer.getSecretOneTimePassword()));
+		} else {
+			System.out.println("Failed to create offer, could not find group");
+		}
+	}
+
+	@Command
+	public void tryToJoinWithOffer(String secretOneTimePassword) {
+		Optional<PeerGroup> joinedGroup = peerGroupManager
+				.tryToJoinWithOffer(secretOneTimePassword);
+		if (joinedGroup.isPresent()) {
+			System.out.println(String.format(
+					"Seems like it worked, got group %s", joinedGroup.get()
+							.getUUID()));
+		} else {
+			System.out.println("That doesn't look good");
+		}
+
+	}
+
+	@Command
+	public void init() {
+		PeerGroup group = createPeerGroup("first");
+		createApplicationOffer(group.getUUID().toString());
 	}
 
 }

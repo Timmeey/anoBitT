@@ -29,12 +29,13 @@ import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.dht.fakeDHTServer.DHTServer;
 import de.timmeey.anoBitT.dht.impl.DHTServiceFakeImpl;
 import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
+import de.timmeey.anoBitT.peerGroup.PeerGroupApplicationRequest;
+import de.timmeey.anoBitT.peerGroup.PeerGroupApplicationRequestHandler;
 import de.timmeey.anoBitT.peerGroup.PeerGroupManager;
 import de.timmeey.anoBitT.peerGroup.PeerGroupUpdateRequest;
 import de.timmeey.anoBitT.peerGroup.PeerGroupUpdateRequestHandler;
 import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMemberIpUpdateRequest;
 import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMemberIpUpdateRequestHandler;
-import de.timmeey.anoBitT.peerGroup.application.PeerGroupApplicationRequestHandler;
 import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.anoBitT.tor.TorManager;
 import de.timmeey.anoBitT.util.GsonSerializer;
@@ -147,7 +148,7 @@ public class main {
 	private static void initializePeerGroups() {
 		peerGroupManager = new PeerGroupManager(keyPair, requestService,
 				Integer.parseInt(appProps.getProperty("externalCommPort")),
-				ipToBeReachedOn);
+				ipToBeReachedOn, dhtService);
 
 	}
 
@@ -312,6 +313,7 @@ public class main {
 		} catch (InterruptedException e1) {
 			// Doen't matter here
 		} finally {
+			System.out.println("oh fuck....." + reason);
 			System.exit(1);
 		}
 
@@ -352,5 +354,7 @@ public class main {
 				new PeerGroupMemberIpUpdateRequestHandler(peerGroupManager));
 		PeerGroupUpdateRequest.addHandler(externalCom,
 				new PeerGroupUpdateRequestHandler(peerGroupManager));
+		PeerGroupApplicationRequest.addHandler(externalCom,
+				new PeerGroupApplicationRequestHandler(peerGroupManager));
 	}
 }

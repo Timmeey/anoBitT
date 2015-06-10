@@ -12,6 +12,7 @@ import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import de.timmeey.anoBitT.dht.DHTService;
+import de.timmeey.anoBitT.peerGroup.PeerGroupApplicationOffer;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ApplicationTest {
@@ -19,14 +20,14 @@ public class ApplicationTest {
 	@Mock
 	DHTService dht;
 
-	@Test
-	public void testDhtEntry() {
-		String addr = "123456789";
-
-		PeerGroupApplicationOffer offer = new PeerGroupApplicationOffer(dht,
-				5L, null, addr);
-		String securedAddr = offer.getSecuredOwnOnionAddress();
-		String pwHash = offer.getSecretOneTimePasswordHash();
-
-	}
+	// @Test
+	// public void testDhtEntry() {
+	// String addr = "123456789";
+	//
+	// PeerGroupApplicationOffer offer = new PeerGroupApplicationOffer(dht,
+	// 5L, null, addr);
+	// String securedAddr = offer.getSecuredOwnOnionAddress();
+	// String pwHash = offer.getSecretOneTimePasswordHash();
+	//
+	// }
 }
