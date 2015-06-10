@@ -20,16 +20,21 @@ import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import asg.cliche.ShellFactory;
+
 import com.google.common.net.InetAddresses;
 
-import asg.cliche.ShellFactory;
 import de.timmeey.anoBitT.client.ConsoleClient;
-import de.timmeey.anoBitT.communication.external.ExternalCommunicationHandler;
 import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.dht.fakeDHTServer.DHTServer;
 import de.timmeey.anoBitT.dht.impl.DHTServiceFakeImpl;
 import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
 import de.timmeey.anoBitT.peerGroup.PeerGroupManager;
+import de.timmeey.anoBitT.peerGroup.PeerGroupUpdateRequest;
+import de.timmeey.anoBitT.peerGroup.PeerGroupUpdateRequestHandler;
+import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMemberIpUpdateRequest;
+import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMemberIpUpdateRequestHandler;
+import de.timmeey.anoBitT.peerGroup.application.PeerGroupApplicationRequestHandler;
 import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.anoBitT.tor.TorManager;
 import de.timmeey.anoBitT.util.GsonSerializer;
@@ -37,6 +42,7 @@ import de.timmeey.libTimmeey.networking.NetSerializer;
 import de.timmeey.libTimmeey.networking.SocketFactory;
 import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestHandlerImpl;
 import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestService;
+import de.timmeey.libTimmeey.networking.communicationServer.TimmeeyHttpSimpleServer;
 import de.timmeey.libTimmeey.pooling.ObjectPool;
 import de.timmeey.libTimmeey.pooling.SimpleObjectPool;
 import de.timmeey.libTimmeey.pooling.Verifier;
@@ -44,6 +50,10 @@ import de.timmeey.libTimmeey.properties.PropertiesAccessor;
 import de.timmeey.libTimmeey.properties.PropertiesFactory;
 
 public class main {
+	static {
+		System.setProperty("logback.configurationFile",
+				"/home/timmeey/.anonBit/logback.xml");
+	}
 
 	public static final boolean DEV = true;
 
@@ -57,7 +67,7 @@ public class main {
 	private static PropertiesAccessor torProps;
 	private static PropertiesAccessor dhtProps;
 	private static final NetSerializer gson = new GsonSerializer();
-	private static ExternalCommunicationHandler externalCom;
+	private static TimmeeyHttpSimpleServer externalCom;
 	private static DHTService dhtService;
 	private static Timer maintenanceTimer;
 	private static PeerGroupManager peerGroupManager;
@@ -104,8 +114,11 @@ public class main {
 			formatter.printHelp("anonBit ", options);
 			emergencyShutdown("Entered a not valid Ip address", null);
 		}
-
-		initializeConfig();
+		if (cmd.hasOption("configName")) {
+			initializeConfig(cmd.getOptionValue("configName"));
+		} else {
+			initializeConfig(null);
+		}
 		if (cmd.hasOption("init")) {
 			writeConfigs();
 		}
@@ -123,6 +136,7 @@ public class main {
 			initializeRequestService();
 			initializeDHT();
 			initializePeerGroups();
+			registerHandler();
 			initializeConsole(dhtService, peerGroupManager);
 
 			logger.info("Initialization complete");
@@ -132,14 +146,19 @@ public class main {
 
 	private static void initializePeerGroups() {
 		peerGroupManager = new PeerGroupManager(keyPair, requestService,
-				Integer.parseInt(appProps.getProperty("externalCommPort")));
+				Integer.parseInt(appProps.getProperty("externalCommPort")),
+				ipToBeReachedOn);
 
 	}
 
 	@SuppressWarnings("unused")
-	private static void initializeConfig() throws IOException {
+	private static void initializeConfig(String appName) throws IOException {
 		logger.debug("Initializeing Configs");
-		PropertiesFactory.setConfDir("anonBit");
+		if (appName == null) {
+			PropertiesFactory.setConfDir("anonBit");
+		} else {
+			PropertiesFactory.setConfDir(appName);
+		}
 		if (DEV != true) {
 			appProps = PropertiesFactory.getPropertiesAccessor("app");
 			dhtProps = PropertiesFactory.getPropertiesAccessor("dht");
@@ -168,11 +187,11 @@ public class main {
 	private static void initializeServer() throws NumberFormatException,
 			IOException {
 		logger.debug("Initializing Server");
-		externalCom = new ExternalCommunicationHandler(gson, appProps,
-				torSocketFactory);
+		externalCom = new TimmeeyHttpSimpleServer(gson,
+				torSocketFactory.getServerSocket(Integer.parseInt(appProps
+						.getProperty("externalCommPort"))));
 
-		externalCom.startServer(Integer.parseInt(appProps
-				.getProperty("externalCommPort")));
+		externalCom.startServer();
 		logger.trace("Server initialized");
 
 	}
@@ -282,10 +301,16 @@ public class main {
 			logger.error(
 					"Killing the application because an error occured: {}",
 					reason);
+			System.out.println(reason);
 			if (e != null) {
 				logger.error("An {} was provided: {}", e.getClass().toString(),
 						e.getMessage());
+				System.out.println(String.format("An %s was provided: %s", e
+						.getClass().toString(), e.getMessage()));
 			}
+			Thread.sleep(300);
+		} catch (InterruptedException e1) {
+			// Doen't matter here
 		} finally {
 			System.exit(1);
 		}
@@ -322,4 +347,10 @@ public class main {
 		});
 	}
 
+	public static void registerHandler() {
+		PeerGroupMemberIpUpdateRequest.addHandler(externalCom,
+				new PeerGroupMemberIpUpdateRequestHandler(peerGroupManager));
+		PeerGroupUpdateRequest.addHandler(externalCom,
+				new PeerGroupUpdateRequestHandler(peerGroupManager));
+	}
 }

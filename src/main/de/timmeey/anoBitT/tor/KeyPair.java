@@ -67,13 +67,20 @@ public class KeyPair {
 
 	public boolean verifySignature(String message, byte[] digitalSignature,
 			PeerGroupMember member) {
+		logger.trace("verifySignature({},{},{})", message,
+				digitalSignature.length, member.getOnionAddress());
 		boolean result = false;
 		try {
 			result = Encryption.checkSignature(message.getBytes("UTF-8"),
 					digitalSignature, member.getPublicKey());
+			logger.trace("Call for checkSignature returned: {}", result);
 		} catch (InvalidKeyException | NoSuchAlgorithmException
 				| NoSuchProviderException | SignatureException
 				| UnsupportedEncodingException e) {
+			System.out.println(String.format(
+					"OHOH das darf nciht sein.. %s, message %s", e.getClass(),
+					e.getMessage()));
+			e.printStackTrace();
 			main.emergencyShutdown(
 					String.format(
 							"An error occured while verifying the message: %s, for member %s",
@@ -81,6 +88,7 @@ public class KeyPair {
 			return false;
 
 		}
+		logger.trace("Verifying signature finished. reusult was: {}", result);
 		return result;
 	}
 
@@ -107,9 +115,25 @@ public class KeyPair {
 
 	public boolean verifyAuthMap(Map<String, String> authMap,
 			PeerGroupMember sendingMember) {
+		logger.debug("verifyAuthMap({},{})", authMap,
+				sendingMember.getOnionAddress());
 		String signedRecipient = authMap.get("signedRecepient");
 		boolean result = verifySignature(getOnionAddress(),
 				Base64Helper.stringToByte(signedRecipient), sendingMember);
+		logger.debug("Verification of signature returend {} for {}", result,
+				sendingMember.getOnionAddress());
 		return result;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return String.format(
+				"KeyPair [getPublicKey()=%s, getOnionAddress()=%s]",
+				getPublicKey().getAlgorithm(), getOnionAddress());
 	}
 }

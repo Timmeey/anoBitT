@@ -81,13 +81,13 @@ public class AnonSocketFactoryImpl implements SocketFactory,
 			throw new NotYetInitializedException(
 					"Socketfactory is not yet initialized");
 
-		logger.trace("Opening normal socket to {} at port {}", host, port);
-
+		logger.trace("Opening TOR socket to {} at port {}", host, port);
 		Socket socket;
 
 		TcpipNetAddress remoteAddress = new TcpipNetAddress(host, port);
 		NetSocket netSocket = this.netLayer.createNetSocket(null, null,
 				remoteAddress);
+		logger.debug("Opened TOR socket to {} at port {}", host, port);
 		socket = new NetSocket2Socket(netSocket);
 		socket.setKeepAlive(true);
 		socket.setSoTimeout(1000 * 60 * 10);
@@ -95,5 +95,4 @@ public class AnonSocketFactoryImpl implements SocketFactory,
 		return socket;
 
 	}
-
 }

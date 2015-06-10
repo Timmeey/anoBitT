@@ -1,6 +1,7 @@
 package de.timmeey.anoBitT.peerGroup;
 
 import java.security.PublicKey;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -25,29 +27,28 @@ import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestService;
 public class PeerGroup {
 	private static final Logger LOGGER = LoggerFactory
 			.getLogger(PeerGroup.class);
+
+	private static final int MAX_TIMEOUT_FOR_UPDATE_REPLIES = 15;
+	transient private static KeyPair keyPair;
+	transient private static HTTPRequestService requestService;
+
 	private String name;
 	private final UUID groupId;
 	private Set<PeerGroupMember> members;
-	private static final int MAX_TIMEOUT_FOR_UPDATE_REPLIES = 15;
-	private final KeyPair keyPair;
-	private final HTTPRequestService requestService;
+
 	private final int port;
 
-	private final static Logger logger = LoggerFactory
-			.getLogger(PeerGroup.class);
-
 	public PeerGroup(String name, KeyPair keyPair,
-			HTTPRequestService requestService, int portToReachOtherNodes) {
+			HTTPRequestService requestService, int portToReachOtherNodes,
+			String myIp) {
 
 		this.groupId = UUID.randomUUID();
 		members = Sets.newHashSet();
-		this.keyPair = keyPair;
-		this.requestService = requestService;
 		this.name = name;
 		this.port = portToReachOtherNodes;
 		PeerGroupMember myselfAsMember = new PeerGroupMember(
 				keyPair.getPublicKey(), keyPair.getOnionAddress(), this,
-				requestService, portToReachOtherNodes, keyPair);
+				portToReachOtherNodes, myIp);
 		this.addMember(myselfAsMember);
 	}
 
@@ -108,7 +109,7 @@ public class PeerGroup {
 	 */
 	public PeerGroup addMember(PeerGroupMember member) {
 		synchronized (this) {
-			logger.info("Adding single group member: {}",
+			LOGGER.info("Adding single group member: {}",
 					member.getOnionAddress());
 			this.members.add(member);
 			return this;
@@ -124,7 +125,7 @@ public class PeerGroup {
 	 */
 	public PeerGroup updateGroupMembers() {
 		synchronized (this) {
-			logger.debug("Updating groupMember");
+			LOGGER.debug("Updating groupMember");
 			this.updateOnlineStats();
 
 			List<Future<PeerGroupUpdateResponse>> memberFutureLists = members
@@ -137,7 +138,7 @@ public class PeerGroup {
 					+ MAX_TIMEOUT_FOR_UPDATE_REPLIES * 1000;
 			for (Future<PeerGroupUpdateResponse> updateRequest : memberFutureLists) {
 				try {
-					logger.trace("Waiting for updare request response");
+					LOGGER.trace("Waiting for updare request response");
 					Set<PeerGroupMember> tmpSet = updateRequest
 							.get(waitUntil - System.currentTimeMillis(),
 									TimeUnit.MILLISECONDS).getPeerGroup()
@@ -172,7 +173,7 @@ public class PeerGroup {
 	 * @return A future with the updated peerGroup
 	 */
 	public PeerGroup updateOnlineStats() {
-		logger.debug("Updating ups for all member of group {}", name);
+		LOGGER.debug("Updating ups for all member of group {}", name);
 		members.stream().parallel().forEach(PeerGroupMember::updateIpAddress);
 		return this;
 	}
@@ -198,8 +199,44 @@ public class PeerGroup {
 		Optional<PeerGroupMember> member = this
 				.getMember(authMap.get("sender"));
 		if (member.isPresent()) {
+			LOGGER.trace("Found member {} specified in authMap", member.get()
+					.getOnionAddress());
 			result = keyPair.verifyAuthMap(authMap, member.get());
+		} else {
+			LOGGER.info("Could not find member specified in authMap");
+
 		}
+		LOGGER.debug("isAuthMapFromAuthorizedMember resulted in {}", result);
 		return result;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return String
+				.format("PeerGroup [name=%s, groupId=%s, members=%s, keyPair=%s, port=%s]",
+						name, groupId, members, keyPair, port);
+	}
+
+	public static void setRequestService(HTTPRequestService requestService) {
+		Preconditions.checkNotNull(requestService);
+		if (PeerGroup.requestService == null) {
+			PeerGroup.requestService = requestService;
+		} else {
+			PeerGroup.LOGGER.error("requestService was already set");
+		}
+	}
+
+	public static void setKeyPair(KeyPair keyPair) {
+		Preconditions.checkNotNull(keyPair);
+		if (PeerGroup.keyPair == null) {
+			PeerGroup.keyPair = keyPair;
+		} else {
+			PeerGroup.LOGGER.error("keyPair was already set");
+		}
 	}
 }
