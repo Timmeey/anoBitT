@@ -1,6 +1,7 @@
 package de.timmeey.anoBitT;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,9 +15,12 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.InetAddresses;
 
 import asg.cliche.ShellFactory;
 import de.timmeey.anoBitT.client.ConsoleClient;
@@ -57,6 +61,7 @@ public class main {
 	private static DHTService dhtService;
 	private static Timer maintenanceTimer;
 	private static PeerGroupManager peerGroupManager;
+	private static String ipToBeReachedOn;
 
 	private static final List<Runnable> maintenanceTaskList = new ArrayList<Runnable>();
 
@@ -65,6 +70,7 @@ public class main {
 	private static final Logger logger = LoggerFactory.getLogger(main.class);
 
 	public static void main(String[] args) throws Exception {
+		registerShutdownHook();
 		// create Options object
 		Options options = new Options();
 
@@ -73,9 +79,31 @@ public class main {
 				"switch whether to write new config files or not");
 		options.addOption("dhtServer", false,
 				"switch whether to run as DHTserver");
+		options.addOption(
+				"ip",
+				true,
+				"The ipAddress under which this instance is reachable for other trusted instances");
+		options.addOption("configName", true,
+				"the name under which the config is found");
+		options.addOption("help", false, "Help message");
+
+		HelpFormatter formatter = new HelpFormatter();
 
 		CommandLineParser parser = new DefaultParser();
 		CommandLine cmd = parser.parse(options, args);
+
+		if (cmd.hasOption("help") || !(cmd.hasOption("ip"))) {
+			formatter.printHelp("anonBit ", options);
+			System.exit(0);
+		}
+		String ip = cmd.getOptionValue("ip");
+		if (InetAddresses.isInetAddress(ip)) {
+			ipToBeReachedOn = ip;
+		} else {
+			// Ip address is not valid
+			formatter.printHelp("anonBit ", options);
+			emergencyShutdown("Entered a not valid Ip address", null);
+		}
 
 		initializeConfig();
 		if (cmd.hasOption("init")) {
@@ -83,16 +111,17 @@ public class main {
 		}
 
 		initializeNetwork();
+		initializeMaintenance();
 
 		if (cmd.hasOption("dhtServer")) {
 			logger.debug("Running as DHTServer");
 			DHTServer.startDHTServer(torManager, dhtProps);
 		} else {
 			logger.debug("We are not running as DHT server");
+
 			initializeServer();
 			initializeRequestService();
 			initializeDHT();
-			initializeMaintenance();
 			initializePeerGroups();
 			initializeConsole(dhtService, peerGroupManager);
 
@@ -230,6 +259,15 @@ public class main {
 		};
 
 		maintenanceTimer.schedule(task, 10000L, 10000L);
+		addMaintenanceTask(new Runnable() {
+
+			@Override
+			public void run() {
+				logger.debug(String.format("Curent total thread count: %s",
+						ManagementFactory.getThreadMXBean().getThreadCount()));
+
+			}
+		});
 
 	}
 
@@ -274,4 +312,14 @@ public class main {
 		}.run();
 
 	}
+
+	public static void registerShutdownHook() {
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				logger.info("Got shutdown request");
+			}
+		});
+	}
+
 }
