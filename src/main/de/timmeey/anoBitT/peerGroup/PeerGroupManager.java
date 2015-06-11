@@ -51,8 +51,7 @@ public class PeerGroupManager {
 	}
 
 	public PeerGroup createPeerGroup(String name) {
-		PeerGroup newGroup = new PeerGroup(name, keyPair, requestService,
-				localIp);
+		PeerGroup newGroup = new PeerGroup(name);
 		logger.info("Creating new PeerGroup {}", name);
 		this.peerGroups.add(newGroup);
 		return newGroup;

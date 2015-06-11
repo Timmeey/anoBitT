@@ -3,6 +3,7 @@ package de.timmeey.anoBitT.peerGroup;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,14 +38,15 @@ public class PeerGroup {
 
 	private String name;
 	private final UUID groupId;
-	private Set<PeerGroupMember> members;
+	private Set<PeerGroupMember> members = new HashSet<PeerGroupMember>();
 	transient private final Map<String, PeerGroupApplicationOffer> offers = new ConcurrentHashMap<String, PeerGroupApplicationOffer>();
 
-	public PeerGroup(String name, KeyPair keyPair,
-			HTTPRequestService requestService, String myIp) {
+	public PeerGroup(String name) {
+		Preconditions.checkNotNull(keyPair);
+		Preconditions.checkNotNull(requestService);
+		Preconditions.checkNotNull(port);
 
 		this.groupId = UUID.randomUUID();
-		members = Sets.newHashSet();
 		this.name = name;
 		this.addMember(keyPair.getOnionAddress(), keyPair.getPublicKey());
 	}

@@ -141,4 +141,54 @@ public class PeerGroupMember {
 		}
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((onionAddress == null) ? 0 : onionAddress.hashCode());
+		result = prime * result
+				+ ((peerGroup == null) ? 0 : peerGroup.hashCode());
+		result = prime * result
+				+ ((publicKey == null) ? 0 : publicKey.hashCode());
+		return result;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (!(obj instanceof PeerGroupMember))
+			return false;
+		PeerGroupMember other = (PeerGroupMember) obj;
+		if (onionAddress == null) {
+			if (other.onionAddress != null)
+				return false;
+		} else if (!onionAddress.equals(other.onionAddress))
+			return false;
+		if (peerGroup == null) {
+			if (other.peerGroup != null)
+				return false;
+		} else if (!peerGroup.equals(other.peerGroup))
+			return false;
+		if (publicKey == null) {
+			if (other.publicKey != null)
+				return false;
+		} else if (!publicKey.equals(other.publicKey))
+			return false;
+		return true;
+	}
+
 }

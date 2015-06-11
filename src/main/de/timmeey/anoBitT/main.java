@@ -138,6 +138,8 @@ public class main {
 			initializeDHT();
 			initializePeerGroups();
 			registerHandler();
+			System.out.println(String.format("Will listen on %s",
+					keyPair.getOnionAddress(), ipToBeReachedOn));
 			initializeConsole(dhtService, peerGroupManager);
 
 			logger.info("Initialization complete");
