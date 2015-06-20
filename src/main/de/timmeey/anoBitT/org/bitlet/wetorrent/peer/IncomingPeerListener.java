@@ -19,7 +19,6 @@ package de.timmeey.anoBitT.org.bitlet.wetorrent.peer;
 
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,13 +27,12 @@ import java.util.Set;
 
 import de.timmeey.anoBitT.org.bitlet.wetorrent.Torrent;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.util.thread.InterruptableTasksThread;
-import de.timmeey.anoBitT.org.bitlet.wetorrent.util.thread.ThreadTask;
 import de.timmeey.anoBitT.peerGroup.PeerGroupManager;
 import de.timmeey.anoBitT.torrent.PlainTorrentIncomingPeerAcceptor;
 import de.timmeey.anoBitT.torrent.TorTorrentIncomingPeerAcceptor;
 import de.timmeey.libTimmeey.networking.SocketFactory;
 
-public class IncomingPeerListener {
+public class IncomingPeerListener extends InterruptableTasksThread {
 
 	ServerSocket serverSocket;
 	private Map<ByteBuffer, Torrent> torrents = new HashMap<ByteBuffer, Torrent>();
@@ -99,8 +97,8 @@ public class IncomingPeerListener {
 	}
 
 	public void interrupt() {
-		plainAcceptor.interrupt();
-		torAcceptor.interrupt();
+		super.interrupt();
+
 		for (TorrentPeer p : dispatchingPeers) {
 			p.interrupt();
 		}

@@ -15,9 +15,9 @@
  *  limitations under the License.
  */
 
-//MODIFIED
-
 package de.timmeey.anoBitT.org.bitlet.wetorrent;
+
+import static de.timmeey.anoBitT.org.bitlet.wetorrent.util.Utils.toByteBuffer;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -50,6 +50,8 @@ public class Torrent extends InterruptableTasksThread {
     private byte[] peerId;
     private String peerIdEncoded;
     private int port;
+    private Tracker activeTracker = null;
+    private List<List<Tracker>> trackerTiers = new LinkedList<List<Tracker>>();
     private PeersManager peersManager = new PeersManager(this);
     private TorrentDisk torrentDisk;
     private IncomingPeerListener incomingPeerListener;
@@ -103,8 +105,64 @@ public class Torrent extends InterruptableTasksThread {
         this.port = incomingPeerListener.getPort();
         incomingPeerListener.register(this);
 
+        List announceList = metafile.getAnnounceList();
+        if (announceList != null) {
+            for (Object elem : announceList) {
+                List tier = (List) elem;
+                List trackerTier = new LinkedList<Tracker>();
+
+                for (Object trackerElem : tier) {
+                    ByteBuffer trackerAnnounce = (ByteBuffer) trackerElem;
+                    Tracker tracker = new Tracker(new String(trackerAnnounce.array()));
+                    
+                    byte[] keyBytes = new byte[4];
+                    random.nextBytes(keyBytes);
+                    tracker.setKey(Utils.byteArrayToURLString(keyBytes));
+                    
+                    trackerTier.add(tracker);
+                }
+                Collections.shuffle(trackerTier);
+                trackerTiers.add(trackerTier);
+            }
+        } else {
+            List<Tracker> uninqueTracker = new LinkedList<Tracker>();
+            Tracker tracker = new Tracker(metafile.getAnnounce());
+            
+            byte[] keyBytes = new byte[4];
+            random.nextBytes(keyBytes);
+            tracker.setKey(Utils.byteArrayToURLString(keyBytes));
+            uninqueTracker.add(tracker);
+            trackerTiers.add(uninqueTracker);
+        }
+        activeTracker = trackerTiers.get(0).get(0);
+
     }
 
+    public Map trackerRequest(String event) {
+
+
+        for (List<Tracker> trackers : trackerTiers) {
+            for (Tracker t : trackers) {
+                try {
+                    Map responseDictionary = t.trackerRequest(this, event);
+                    if (responseDictionary != null) {
+                        activeTracker = t;
+                        trackers.remove(t);
+                        trackers.add(0, t);
+                        return responseDictionary;
+                    }
+                } catch (Exception e) {
+                    int ciccio = 2;
+                    if (Torrent.verbose) {
+                        addEvent(new Event(this, e.toString(), Level.INFO));
+                    }
+                }
+            }
+
+        }
+
+        return null;
+    }
 
     public synchronized void addEvent(Event event) {
 
@@ -216,19 +274,40 @@ public class Torrent extends InterruptableTasksThread {
         }
     }
 
-    public void addPeers(List<Peer> peers) throws UnknownHostException {
+    public void addPeers(Object peers) throws UnknownHostException {
+        if (peers instanceof List) {
 
-            for (Peer peer : peers) {
-                InetAddress address = peer.getIp();
-                int port = peer.getPort();
-                byte[] peerIdByteString = peer.getPeerId();
+            List peersList = (List) peers;
+            for (Object elem : peersList) {
+                Map peerMap = (Map) elem;
+                ByteBuffer addressByteBuffer = (ByteBuffer) peerMap.get(toByteBuffer("ip"));
+                InetAddress address = InetAddress.getByName(new String(addressByteBuffer.array()));
+                int port = ((Long) peerMap.get(toByteBuffer("port"))).intValue();
+                ByteBuffer peerIdByteByteBuffer = (ByteBuffer) peerMap.get(toByteBuffer("peer id"));
+                byte[] peerIdByteString = peerIdByteByteBuffer.array();
 
                 if (Torrent.verbose) {
                     addEvent(new Event(this, "Offering new peer: " + address, Level.FINE));
                 }
                 peersManager.offer(peerIdByteString, address, port);
             }
-        
+        } else if (peers instanceof ByteBuffer) {
+            byte[] peersString = ((ByteBuffer) peers).array();
+            for (int i = 0; i < peersString.length / 6; i++) {
+                byte[] peerByteAddress = new byte[4];
+                System.arraycopy(peersString, i * 6, peerByteAddress, 0, 4);
+                InetAddress address = InetAddress.getByAddress(peerByteAddress);
+                int port = ( (peersString[i * 6 + 4] & 0xFF) << 8) | (peersString[i * 6 + 5] & 0xFF);
+
+                if (Torrent.verbose) {
+                    addEvent(new Event(this, "Offering new peer: " + address, Level.FINE));
+                }
+                peersManager.offer(null, address, port);
+            }
+
+        } else {
+            System.err.println("WTF!!!");
+        }
     }
 
     public boolean isCompleted() {
@@ -240,11 +319,26 @@ public class Torrent extends InterruptableTasksThread {
         peersManager.tick();
         choker.tick();
 
-//Brauche ich vllt noch
-//        Long waitTime = activeTracker.getInterval();
-//        if (incomingPeerListener.getReceivedConnection() == 0 || peersManager.getActivePeersNumber() < 4) {
-//            waitTime = activeTracker.getMinInterval() != null ? activeTracker.getMinInterval() : 60;
-//        }
+
+        Long waitTime = activeTracker.getInterval();
+        if (incomingPeerListener.getReceivedConnection() == 0 || peersManager.getActivePeersNumber() < 4) {
+            waitTime = activeTracker.getMinInterval() != null ? activeTracker.getMinInterval() : 60;
+        }
+
+        long now = System.currentTimeMillis();
+        if (now - activeTracker.getLastRequestTime() >= waitTime * 1000) {
+
+            if (!stopped) {
+                try {
+                    Object peers = trackerRequest(null).get(toByteBuffer("peers"));
+                    if (peers != null) {
+                        addPeers(peers);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     public IncomingPeerListener getIncomingPeerListener() {
@@ -253,24 +347,30 @@ public class Torrent extends InterruptableTasksThread {
 
     public void stopDownload() {
         stopped = true;
-        //Hier muss dht informiert werden
-//        new Thread() {
-//
-//            public void run() {
-//                try {
-//                    trackerRequest("stopped");
-//                } catch (Exception ex) {
-//                }
-//            }
-//        }.start();
+        new Thread() {
+
+            public void run() {
+                try {
+                    trackerRequest("stopped");
+                } catch (Exception ex) {
+                }
+            }
+        }.start();
 
         getPeersManager().interrupt();
     }
 
     public void startDownload() throws Exception {
         stopped = false;
-        //Request peers
+        Map firstResponseDictionary = trackerRequest("started");
 
+        if (firstResponseDictionary == null) {
+            throw new Exception("Problem while sending tracker request");
+        }
+
+        Object peers = firstResponseDictionary.get(toByteBuffer("peers"));
+
+        addPeers(peers);
     }
 }
 

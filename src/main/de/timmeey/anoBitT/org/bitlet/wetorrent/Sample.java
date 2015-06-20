@@ -26,43 +26,41 @@ import de.timmeey.anoBitT.org.bitlet.wetorrent.disk.TorrentDisk;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.peer.IncomingPeerListener;
 
 public class Sample {
-	private static final int PORT = 6881;
+    private static final int PORT = 6881;
 
-	public static void main(String[] args) throws Exception {
-		// read torrent filename from command line arg
-		String filename = args[0];
+    public static void main(String[] args) throws Exception {
+        // read torrent filename from command line arg
+        String filename = args[0];
 
-		// Parse the metafile
-		Metafile metafile = new Metafile(new BufferedInputStream(
-				new FileInputStream(filename)));
+        // Parse the metafile
+        Metafile metafile = new Metafile(new BufferedInputStream(new FileInputStream(filename)));
 
-		// Create the torrent disk, this is the destination where the torrent
-		// file/s will be saved
-		TorrentDisk tdisk = new PlainFileSystemTorrentDisk(metafile, new File(
-				"."));
-		tdisk.init();
+        // Create the torrent disk, this is the destination where the torrent file/s will be saved
+        TorrentDisk tdisk = new PlainFileSystemTorrentDisk(metafile, new File("."));
+        tdisk.init();
+        
+        IncomingPeerListener peerListener = new IncomingPeerListener(PORT);
+        peerListener.start();
 
-		IncomingPeerListener peerListener = new IncomingPeerListener(PORT);
+        Torrent torrent = new Torrent(metafile, tdisk, peerListener);
+        torrent.startDownload();
 
-		Torrent torrent = new Torrent(metafile, tdisk, peerListener);
-		torrent.startDownload();
+        while (!torrent.isCompleted()) {
 
-		while (!torrent.isCompleted()) {
+            try {
+                Thread.sleep(1000);
+            } catch(InterruptedException ie) {
+                break;
+            }
 
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException ie) {
-				break;
-			}
+            torrent.tick();
+            System.out.printf("Got %s peers, completed %d bytes\n",
+                    torrent.getPeersManager().getActivePeersNumber(),
+                    torrent.getTorrentDisk().getCompleted());
+        }
 
-			torrent.tick();
-			System.out.printf("Got %s peers, completed %d bytes\n", torrent
-					.getPeersManager().getActivePeersNumber(), torrent
-					.getTorrentDisk().getCompleted());
-		}
-
-		torrent.interrupt();
-		peerListener.interrupt();
-	}
+        torrent.interrupt();
+        peerListener.interrupt();
+    }
 
 }
