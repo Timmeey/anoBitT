@@ -1,5 +1,6 @@
 package de.timmeey.anoBitT.peerGroup;
 
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,6 +16,7 @@ import com.google.common.net.InetAddresses;
 
 import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.exceptions.InvalidIpAddressException;
+import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
 import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.libTimmeey.networking.communicationClient.HTTPRequestService;
 import de.timmeey.libTimmeey.networking.communicationServer.HTTPResponse.ResponseCode;
@@ -128,6 +130,13 @@ public class PeerGroupManager {
 		}
 		logger.info("Seems like there was no valid offer for the provided secretOneTimePassword :-(");
 		return Optional.empty();
+
+	}
+
+	public Optional<PeerGroupMember> getMemberForIP(InetAddress ip) {
+		return peerGroups.stream().flatMap(g -> g.getMembers().stream())
+				.filter(m -> m.getIpAddress().equals(ip.getHostAddress()))
+				.findFirst();
 
 	}
 }

@@ -49,12 +49,9 @@ public class PeerGroupMember {
 		return this.publicKey.getPublicKey();
 	}
 
-	public String getIpAddress() throws NotOnlineException {
-		if (isOnline) {
-			return this.ipAddress;
-		} else {
-			throw new NotOnlineException();
-		}
+	public String getIpAddress() {
+		return this.ipAddress;
+
 	}
 
 	public String getOnionAddress() {
@@ -87,7 +84,7 @@ public class PeerGroupMember {
 
 	}
 
-	public boolean isOnline() {
+	public boolean getOnlineStatus() {
 		try {
 			updateIpAddress();
 			return isOnline;

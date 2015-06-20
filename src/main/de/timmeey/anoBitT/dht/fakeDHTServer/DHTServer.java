@@ -3,6 +3,7 @@ package de.timmeey.anoBitT.dht.fakeDHTServer;
 import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.concurrent.Callable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 
+import de.timmeey.anoBitT.main;
 import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
 import de.timmeey.anoBitT.tor.TorManager;
 import de.timmeey.anoBitT.util.GsonSerializer;
@@ -94,23 +96,17 @@ public class DHTServer {
 			}
 		});
 
-		new Runnable() {
+		main.addMaintenanceTask(new Callable() {
 
-			public void run() {
-				while (!Thread.interrupted()) {
-					// cleanup every hour
-					try {
-						Thread.sleep(cleanupPeriod);
-						cleanup();
-					} catch (InterruptedException e) {
-						logger.trace("interrupted");
-						e.printStackTrace();
-					}
+			public Object call() throws InterruptedException {
 
-				}
+				cleanup();
+				return null;
 
 			}
-		}.run();
+
+		});
+
 		logger.info("DHTServer Running");
 
 	}

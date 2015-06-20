@@ -2,11 +2,13 @@ package de.timmeey.anoBitT;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -29,6 +31,8 @@ import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.dht.fakeDHTServer.DHTServer;
 import de.timmeey.anoBitT.dht.impl.DHTServiceFakeImpl;
 import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
+import de.timmeey.anoBitT.org.bitlet.wetorrent.peer.IncomingPeerListener;
+import de.timmeey.anoBitT.org.bitlet.wetorrent.peer.TorrentPeer;
 import de.timmeey.anoBitT.peerGroup.PeerGroupApplicationRequest;
 import de.timmeey.anoBitT.peerGroup.PeerGroupApplicationRequestHandler;
 import de.timmeey.anoBitT.peerGroup.PeerGroupManager;
@@ -38,6 +42,8 @@ import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMemberIpUpdateRequest;
 import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMemberIpUpdateRequestHandler;
 import de.timmeey.anoBitT.tor.KeyPair;
 import de.timmeey.anoBitT.tor.TorManager;
+import de.timmeey.anoBitT.torrent.PlainTorrentIncomingPeerAcceptor;
+import de.timmeey.anoBitT.torrent.TorTorrentIncomingPeerAcceptor;
 import de.timmeey.anoBitT.util.GsonSerializer;
 import de.timmeey.libTimmeey.networking.NetSerializer;
 import de.timmeey.libTimmeey.networking.SocketFactory;
@@ -74,7 +80,7 @@ public class main {
 	private static PeerGroupManager peerGroupManager;
 	private static String ipToBeReachedOn;
 
-	private static final List<Runnable> maintenanceTaskList = new ArrayList<Runnable>();
+	private static final List<Callable> maintenanceTaskList = new ArrayList<Callable>();
 
 	private static ExecutorService torRequestExecutorService;
 
@@ -103,18 +109,11 @@ public class main {
 		CommandLineParser parser = new DefaultParser();
 		CommandLine cmd = parser.parse(options, args);
 
-		if (cmd.hasOption("help") || !(cmd.hasOption("ip"))) {
+		if (cmd.hasOption("help")) {
 			formatter.printHelp("anonBit ", options);
 			System.exit(0);
 		}
-		String ip = cmd.getOptionValue("ip");
-		if (InetAddresses.isInetAddress(ip)) {
-			ipToBeReachedOn = ip;
-		} else {
-			// Ip address is not valid
-			formatter.printHelp("anonBit ", options);
-			emergencyShutdown("Entered a not valid Ip address", null);
-		}
+
 		if (cmd.hasOption("configName")) {
 			initializeConfig(cmd.getOptionValue("configName"));
 		} else {
@@ -125,6 +124,11 @@ public class main {
 		}
 
 		initializeNetwork();
+		SocketFactory socketFactory = torManager.getTorSocketFactory();
+		// SocketFactory socketFactory = new SocketFactoryImpl();
+		int DHTPort = Integer.parseInt(dhtProps.getProperty("DHTPort"));
+		ServerSocket serverSocket = socketFactory.getServerSocket(DHTPort);
+
 		initializeMaintenance();
 
 		if (cmd.hasOption("dhtServer")) {
@@ -132,6 +136,14 @@ public class main {
 			DHTServer.startDHTServer(torManager, dhtProps);
 		} else {
 			logger.debug("We are not running as DHT server");
+			String ip = cmd.getOptionValue("ip");
+			if (InetAddresses.isInetAddress(ip)) {
+				ipToBeReachedOn = ip;
+			} else {
+				// Ip address is not valid
+				formatter.printHelp("anonBit ", options);
+				emergencyShutdown("Entered a not valid Ip address", null);
+			}
 
 			initializeServer();
 			initializeRequestService();
@@ -205,15 +217,16 @@ public class main {
 		LinkedBlockingQueue<Runnable> requestQueue = new LinkedBlockingQueue<Runnable>();
 		ObjectPool<String, Socket> pool = getTorSocketPool();
 
-		addMaintenanceTask(new Runnable() {
+		addMaintenanceTask(new Callable() {
 
 			@Override
-			public void run() {
+			public Object call() {
 				logger.debug("RequestQueue is currently {} long",
 						requestQueue.size());
 				logger.debug(
 						"SocketPool currently holds {} in total, with {} Sockets lend out",
 						pool.totalPoolSize(), pool.currentlyLendOutObjects());
+				return null;
 
 			}
 		});
@@ -268,9 +281,9 @@ public class main {
 			@Override
 			public void run() {
 				logger.debug("Maintenance run started");
-				for (Runnable runnable : maintenanceTaskList) {
+				for (Callable callable : maintenanceTaskList) {
 					try {
-						runnable.run();
+						callable.call();
 					} catch (Exception e) {
 						logger.warn("Maintenance callable threw exception: {}",
 								e.getMessage());
@@ -281,19 +294,20 @@ public class main {
 		};
 
 		maintenanceTimer.schedule(task, 10000L, 10000L);
-		addMaintenanceTask(new Runnable() {
+		addMaintenanceTask(new Callable() {
 
 			@Override
-			public void run() {
+			public Object call() {
 				logger.debug(String.format("Curent total thread count: %s",
 						ManagementFactory.getThreadMXBean().getThreadCount()));
+				return null;
 
 			}
 		});
 
 	}
 
-	private static void addMaintenanceTask(Runnable c) {
+	public static void addMaintenanceTask(Callable c) {
 		maintenanceTaskList.add(c);
 
 	}
@@ -346,12 +360,13 @@ public class main {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
+				System.out.println("got shutdown request");
 				logger.info("Got shutdown request");
 			}
 		});
 	}
 
-	public static void registerHandler() {
+	private static void registerHandler() {
 		PeerGroupMemberIpUpdateRequest.addHandler(externalCom,
 				new PeerGroupMemberIpUpdateRequestHandler(peerGroupManager));
 		PeerGroupUpdateRequest.addHandler(externalCom,

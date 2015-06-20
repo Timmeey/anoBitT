@@ -29,117 +29,84 @@ import java.util.Set;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.Torrent;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.util.thread.InterruptableTasksThread;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.util.thread.ThreadTask;
+import de.timmeey.anoBitT.peerGroup.PeerGroupManager;
+import de.timmeey.anoBitT.torrent.PlainTorrentIncomingPeerAcceptor;
+import de.timmeey.anoBitT.torrent.TorTorrentIncomingPeerAcceptor;
+import de.timmeey.libTimmeey.networking.SocketFactory;
 
-public class IncomingPeerListener extends InterruptableTasksThread {
+public class IncomingPeerListener {
 
-    ServerSocket serverSocket;
-    private Map<ByteBuffer, Torrent> torrents = new HashMap<ByteBuffer, Torrent>();
-    private Set<TorrentPeer> dispatchingPeers = new HashSet<TorrentPeer>();
-    private int port;
-    private int receivedConnection = 0;
+	ServerSocket serverSocket;
+	private Map<ByteBuffer, Torrent> torrents = new HashMap<ByteBuffer, Torrent>();
+	private Set<TorrentPeer> dispatchingPeers = new HashSet<TorrentPeer>();
+	private int port;
+	private int receivedConnection = 0;
+	private final PlainTorrentIncomingPeerAcceptor plainAcceptor;
+	private final TorTorrentIncomingPeerAcceptor torAcceptor;
 
-    public IncomingPeerListener(int port) {
+	public IncomingPeerListener(SocketFactory torSocketFactory,
+			SocketFactory plainSocketFactory,
+			PeerGroupManager peerGroupManager, int port) {
 
-        if (Torrent.verbose) {
-            System.err.println("Binding incoming server socket");
-        }
-        while (port < 65535 && serverSocket == null) {
-            try {
-                serverSocket = new ServerSocket(port);
-            } catch (Exception e) {
+		plainAcceptor = new PlainTorrentIncomingPeerAcceptor(this,
+				plainSocketFactory, peerGroupManager, port);
+		torAcceptor = new TorTorrentIncomingPeerAcceptor(this,
+				torSocketFactory, port);
 
-                if (Torrent.verbose) {
-                    System.err.println("Cannot bind port " + port);
-                }
-                port++;
-            }
-        }
+	}
 
-        if (serverSocket == null) {
+	public IncomingPeerListener addConnection(Socket socket) {
+		receivedConnection++;
+		TorrentPeer peer = new TorrentPeer(socket, this);
+		dispatchingPeers.add(peer);
+		peer.start();
+		return this;
 
-            System.err.println("Cannot bind the incoming socket");
-            return;
-        }
+	}
 
-        this.port = port;
+	public int getPort() {
+		return port;
+	}
 
-        final IncomingPeerListener incomingPeerListener = this;
-        addTask(new ThreadTask() {
+	public int getReceivedConnection() {
+		return receivedConnection;
+	}
 
-            public boolean execute() throws Exception {
+	public synchronized void register(Torrent torrent) {
+		torrents.put(ByteBuffer.wrap(torrent.getMetafile().getInfoSha1()),
+				torrent);
+	}
 
-                try {
-                    Socket socket = serverSocket.accept();
+	public synchronized void unregister(Torrent torrent) {
+		torrents.remove(ByteBuffer.wrap(torrent.getMetafile().getInfoSha1()));
+	}
 
-                    receivedConnection++;
-                    TorrentPeer peer = new TorrentPeer(socket, incomingPeerListener);
-                    dispatchingPeers.add(peer);
-                    peer.start();
-                } catch (SocketException e) {
-                    return false;
-                }
-                return true;
-            }
+	public synchronized void peer(TorrentPeer dispatchingPeer) {
+		dispatchingPeers.add(dispatchingPeer);
+	}
 
-            public void interrupt() {
-                try {
-                    serverSocket.close();
-                } catch (Exception e) {
-                }
-            }
+	public synchronized boolean dispatchPeer(TorrentPeer dispatchingPeer,
+			byte[] infoSha1) {
+		dispatchingPeers.remove(dispatchingPeer);
+		Torrent torrent = torrents.get(ByteBuffer.wrap(infoSha1));
+		if (torrent != null) {
+			dispatchingPeer.setPeersManager(torrent.getPeersManager());
+			torrent.getPeersManager().offer(dispatchingPeer);
+			return true;
+		} else {
+			return false;
+		}
+	}
 
-            public void exceptionCought(Exception e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            }
-        });
+	public void interrupt() {
+		plainAcceptor.interrupt();
+		torAcceptor.interrupt();
+		for (TorrentPeer p : dispatchingPeers) {
+			p.interrupt();
+		}
+	}
 
-
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public int getReceivedConnection() {
-        return receivedConnection;
-    }
-
-    public synchronized void register(Torrent torrent) {
-        torrents.put(ByteBuffer.wrap(torrent.getMetafile().getInfoSha1()), torrent);
-    }
-
-    public synchronized void unregister(Torrent torrent) {
-        torrents.remove(ByteBuffer.wrap(torrent.getMetafile().getInfoSha1()));
-    }
-
-    public synchronized void peer(TorrentPeer dispatchingPeer) {
-        dispatchingPeers.add(dispatchingPeer);
-    }
-
-    public synchronized boolean dispatchPeer(TorrentPeer dispatchingPeer, byte[] infoSha1) {
-        dispatchingPeers.remove(dispatchingPeer);
-        Torrent torrent = torrents.get(ByteBuffer.wrap(infoSha1));
-        if (torrent != null) {
-            dispatchingPeer.setPeersManager(torrent.getPeersManager());
-            torrent.getPeersManager().offer(dispatchingPeer);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    public void interrupt() {
-        super.interrupt();
-
-        for (TorrentPeer p : dispatchingPeers) {
-            p.interrupt();
-        }
-    }
-
-    public synchronized void removePeer(TorrentPeer peer) {
-        dispatchingPeers.remove(peer);
-    }
+	public synchronized void removePeer(TorrentPeer peer) {
+		dispatchingPeers.remove(peer);
+	}
 }
-
-

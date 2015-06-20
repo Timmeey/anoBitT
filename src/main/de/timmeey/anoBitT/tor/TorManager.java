@@ -34,6 +34,7 @@ public class TorManager {
 	private NetLayer torNetLayer;
 	private TorHiddenServicePrivateNetAddress hiddenAddress;
 	private final PropertiesAccessor torProps;
+	private Thread torThread;
 
 	public TorManager(PropertiesAccessor torProps) {
 		this.keyPair = null;
@@ -45,7 +46,7 @@ public class TorManager {
 		NameServiceGlobalUtil.initNameService();
 
 		torNetLayer = NetFactory.getInstance().getNetLayerById(NetLayerIDs.TOR);
-		new Thread(new Runnable() {
+		torThread = new Thread(new Runnable() {
 			public void run() {
 				while (torNetLayer.getStatus().getReadyIndicator() != 1) {
 					logger.info("Tor connection Status: {}",
@@ -59,7 +60,8 @@ public class TorManager {
 
 				}
 			}
-		}).start();
+		}, "TorThread");
+		torThread.start();
 
 		TorNetLayerUtil torNetLayerUtil = TorNetLayerUtil.getInstance();
 

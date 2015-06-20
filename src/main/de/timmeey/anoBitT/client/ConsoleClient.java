@@ -57,21 +57,13 @@ public class ConsoleClient {
 		UUID uuid1 = UUID.fromString(uuid);
 		PeerGroupMember member = peerGroupManager.getPeerGroupByUUID(uuid1)
 				.get().getMember(onionAddress).get();
-		try {
-			System.out.println(String.format("MembersIP before: %s",
-					member.getIpAddress()));
-		} catch (NotOnlineException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		System.out.println(String.format("MembersIP before: %s",
+				member.getIpAddress()));
+
 		member.updateIpAddress();
-		try {
-			System.out.println(String.format("MembersIP after: %s",
-					member.getIpAddress()));
-		} catch (NotOnlineException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		System.out.println(String.format("MembersIP after: %s",
+				member.getIpAddress()));
+
 		return member;
 	}
 
