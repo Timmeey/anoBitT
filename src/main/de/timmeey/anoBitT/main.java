@@ -31,6 +31,7 @@ import de.timmeey.anoBitT.dht.DHTService;
 import de.timmeey.anoBitT.dht.fakeDHTServer.DHTServer;
 import de.timmeey.anoBitT.dht.impl.DHTServiceFakeImpl;
 import de.timmeey.anoBitT.network.impl.SocketFactoryImpl;
+import de.timmeey.anoBitT.org.bitlet.wetorrent.TorrentManager;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.peer.IncomingPeerListener;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.peer.TorrentPeer;
 import de.timmeey.anoBitT.peerGroup.PeerGroupApplicationRequest;
@@ -59,7 +60,7 @@ import de.timmeey.libTimmeey.properties.PropertiesFactory;
 public class main {
 	static {
 		System.setProperty("logback.configurationFile",
-				"/home/timmeey/.anonBit/logback.xml");
+				System.getProperty("user.home") + "/.anonBit/logback.xml");
 	}
 
 	public static final boolean DEV = true;
@@ -79,6 +80,7 @@ public class main {
 	private static Timer maintenanceTimer;
 	private static PeerGroupManager peerGroupManager;
 	private static String ipToBeReachedOn;
+	private static TorrentManager torrentManager;
 
 	private static final List<Callable> maintenanceTaskList = new ArrayList<Callable>();
 
@@ -123,22 +125,18 @@ public class main {
 			writeConfigs();
 		}
 
-		initializeNetwork();
-		SocketFactory socketFactory = torManager.getTorSocketFactory();
-		// SocketFactory socketFactory = new SocketFactoryImpl();
-		int DHTPort = Integer.parseInt(dhtProps.getProperty("DHTPort"));
-		ServerSocket serverSocket = socketFactory.getServerSocket(DHTPort);
-
 		initializeMaintenance();
 
 		if (cmd.hasOption("dhtServer")) {
 			logger.debug("Running as DHTServer");
+			initializeNetwork();
 			DHTServer.startDHTServer(torManager, dhtProps);
 		} else {
 			logger.debug("We are not running as DHT server");
-			String ip = cmd.getOptionValue("ip");
-			if (InetAddresses.isInetAddress(ip)) {
-				ipToBeReachedOn = ip;
+			if (cmd.hasOption("ip")
+					&& InetAddresses.isInetAddress(cmd.getOptionValue("ip"))) {
+				ipToBeReachedOn = cmd.getOptionValue("ip");
+				initializeNetwork();
 			} else {
 				// Ip address is not valid
 				formatter.printHelp("anonBit ", options);
@@ -149,10 +147,11 @@ public class main {
 			initializeRequestService();
 			initializeDHT();
 			initializePeerGroups();
+			initTorrentManager();
 			registerHandler();
 			System.out.println(String.format("Will listen on %s",
 					keyPair.getOnionAddress(), ipToBeReachedOn));
-			initializeConsole(dhtService, peerGroupManager);
+			initializeConsole(dhtService, peerGroupManager, torrentManager);
 
 			logger.info("Initialization complete");
 		}
@@ -269,8 +268,21 @@ public class main {
 		appProps.addProperty("TORSOCKETIDLETIMOUT", (2 * 60 * 1000) + "");
 		appProps.addProperty("TORSOCKETPOOLCLEANUPTIME", (10 * 1000) + "");
 		appProps.addProperty("externalCommPort", "24361");
+		appProps.addProperty("torrentPort", "3642");
 
 		dhtProps.addProperty("DHTPort", "61342");
+
+	}
+
+	private static void initTorrentManager() {
+		try {
+			torrentManager = new TorrentManager(Integer.parseInt(appProps
+					.getProperty("torrentPort")), dhtService, gson,
+					peerGroupManager, keyPair, torSocketFactory, socketFactory);
+		} catch (NumberFormatException | IOException e) {
+			logger.error("Unable to start TOrrentManager", e);
+			emergencyShutdown("Unable to start TOrrentManager", e);
+		}
 
 	}
 
@@ -336,16 +348,18 @@ public class main {
 	}
 
 	private static void initializeConsole(DHTService dht,
-			PeerGroupManager peerGroupManager) {
+			PeerGroupManager peerGroupManager, TorrentManager torrentManager) {
 
 		new Runnable() {
 
 			@Override
 			public void run() {
 				try {
-					ShellFactory.createConsoleShell("hello", "",
-							new ConsoleClient(peerGroupManager, dht))
-							.commandLoop();
+					ShellFactory.createConsoleShell(
+							"hello",
+							"",
+							new ConsoleClient(peerGroupManager, dht,
+									torrentManager)).commandLoop();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					logger.error("Error in ClientShell: {}", e.getMessage());

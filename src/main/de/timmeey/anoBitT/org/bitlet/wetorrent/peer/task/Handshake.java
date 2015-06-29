@@ -21,7 +21,11 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.logging.Level;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.timmeey.anoBitT.org.bitlet.wetorrent.Event;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.Torrent;
@@ -32,116 +36,145 @@ import de.timmeey.anoBitT.org.bitlet.wetorrent.util.stream.OutputStreamLimiter;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.util.thread.ThreadTask;
 
 public class Handshake implements ThreadTask {
+	private final static Logger logger = LoggerFactory
+			.getLogger(Handshake.class);
 
-    TorrentPeer peer;
+	TorrentPeer peer;
 
-    public Handshake(TorrentPeer peer) {
-        this.peer = peer;
-    }
-    IncomingPeerListener incomingPeerListener = null;
+	public Handshake(TorrentPeer peer) {
+		this.peer = peer;
+	}
 
-    public Handshake(TorrentPeer peer, IncomingPeerListener incomingPeerListener) {
-        this.peer = peer;
-        this.incomingPeerListener = incomingPeerListener;
-    }
+	IncomingPeerListener incomingPeerListener = null;
 
-    private void sendProtocolHeader(TorrentPeer peer) throws IOException {
-        DataOutputStream os = new DataOutputStream(new OutputStreamLimiter(peer.getSocket().getOutputStream(), peer.getPeersManager().getTorrent().getUploadBandwidthLimiter()));
-        os.writeByte(19);
-        os.write("BitTorrent protocol".getBytes());
-        os.write(new byte[8]);
-        os.write(peer.getPeersManager().getTorrent().getMetafile().getInfoSha1());
-        os.write(peer.getPeersManager().getTorrent().getPeerId());
-    }
+	public Handshake(TorrentPeer peer, IncomingPeerListener incomingPeerListener) {
+		this.peer = peer;
+		this.incomingPeerListener = incomingPeerListener;
+	}
 
-    public boolean execute() throws Exception {
+	private void sendProtocolHeader(TorrentPeer peer) throws IOException {
+		logger.debug("Sending handshake ProtocolHeader with peerID {}", peer
+				.getPeersManager().getTorrent().getPeerId());
+		DataOutputStream os = new DataOutputStream(new OutputStreamLimiter(peer
+				.getSocket().getOutputStream(), peer.getPeersManager()
+				.getTorrent().getUploadBandwidthLimiter()));
+		os.writeByte(19);
+		os.write("BitTorrent protocol".getBytes());
+		os.write(new byte[8]);
+		os.write(peer.getPeersManager().getTorrent().getMetafile()
+				.getInfoSha1());
+		os.write(peer.getPeersManager().getTorrent().getPeerId());
+	}
 
-        try {
-            DataInputStream is = new DataInputStream(peer.getSocket().getInputStream());
+	public boolean execute() throws Exception {
 
+		try {
+			logger.debug("Excecuting handshake on inputStream");
+			DataInputStream is = new DataInputStream(peer.getSocket()
+					.getInputStream());
 
-            /* if *we* are starting the connection */
-            if (peer.getPeersManager() != null && incomingPeerListener == null) {
-                sendProtocolHeader(peer);
-            }
-            int protocolIdentifierLength = is.readByte();
+			/* if *we* are starting the connection */
+			if (peer.getPeersManager() != null && incomingPeerListener == null) {
+				sendProtocolHeader(peer);
+			}
+			int protocolIdentifierLength = is.readByte();
 
-            if (protocolIdentifierLength != 19) {
-                throw new Exception("Error, wrong protocol identifier length " + protocolIdentifierLength);
-            }
-            byte[] protocolByteString = new byte[protocolIdentifierLength];
-            is.readFully(protocolByteString);
+			if (protocolIdentifierLength != 19) {
+				throw new Exception("Error, wrong protocol identifier length "
+						+ protocolIdentifierLength);
+			}
+			byte[] protocolByteString = new byte[protocolIdentifierLength];
+			is.readFully(protocolByteString);
 
-            if (!Utils.bytesCompare("BitTorrent protocol".getBytes(), protocolByteString)) {
-                throw new Exception("Error, wrong protocol identifier");
-            }
-            byte[] reserved = new byte[8];
-            is.readFully(reserved);
+			if (!Utils.bytesCompare("BitTorrent protocol".getBytes(),
+					protocolByteString)) {
+				throw new Exception("Error, wrong protocol identifier");
+			}
+			byte[] reserved = new byte[8];
+			is.readFully(reserved);
 
-            byte[] infoHash = new byte[20];
-            is.readFully(infoHash);
-            /* if it's an incoming connection */
-            if (peer.getPeersManager() == null && incomingPeerListener != null) {
-                if (!incomingPeerListener.dispatchPeer(peer, infoHash)) {
-                    peer.getSocket().close();
-                    throw new Exception("Wrong info hash");
-                }
-                sendProtocolHeader(peer);
+			byte[] infoHash = new byte[20];
+			is.readFully(infoHash);
+			/* if it's an incoming connection */
+			if (peer.getPeersManager() == null && incomingPeerListener != null) {
+				if (!incomingPeerListener.dispatchPeer(peer, infoHash)) {
+					peer.getSocket().close();
+					throw new Exception("Wrong info hash");
+				}
+				sendProtocolHeader(peer);
 
-            } else if (!Utils.bytesCompare(infoHash, peer.getPeersManager().getTorrent().getMetafile().getInfoSha1())) {
-                peer.getSocket().close();
-                throw new Exception("Wrong info hash");
-            }
+			} else if (!Utils.bytesCompare(infoHash, peer.getPeersManager()
+					.getTorrent().getMetafile().getInfoSha1())) {
+				peer.getSocket().close();
+				throw new Exception("Wrong info hash");
+			}
 
-            byte[] peerId = new byte[20];
-            is.readFully(peerId);
+			byte[] peerId = new byte[20];
+			is.readFully(peerId);
+			logger.trace("Got peerID {}", peerId);
 
-            if (Torrent.verbose) {
-                peer.getPeersManager().getTorrent().addEvent(new Event(this, "new peerId: " + Utils.byteArrayToURLString(peerId), Level.INFO));
-            }
-            if (Utils.bytesCompare(peerId, peer.getPeersManager().getTorrent().getPeerId())) {
-                peer.getSocket().close();
-                throw new Exception("Avoid self connections");
-            }
+			if (Torrent.verbose) {
+				peer.getPeersManager()
+						.getTorrent()
+						.addEvent(
+								new Event(this, "new peerId: "
+										+ Utils.byteArrayToURLString(peerId),
+										Level.INFO));
+			}
+			if (Utils.bytesCompare(peerId, peer.getPeersManager().getTorrent()
+					.getPeerId())) {
+				logger.warn("Avoid self connections, closing socket");
+				peer.getSocket().close();
+				throw new Exception("Avoid self connections");
+			}
 
-            if (peer.getPeerId() != null) {
-                if (!Utils.bytesCompare(peer.getPeerId(), peerId)) {
-                    peer.getSocket().close();
-                    throw new Exception("Wrong peer id");
-                }
-            } else {
-                peer.setPeerId(peerId);
-            }
-            if (Torrent.verbose) {
-                peer.getPeersManager().getTorrent().addEvent(new Event(this, "Connection header correctly parsed ", Level.FINER));
-            }
-            peer.getPeersManager().connected(peer);
+			if (peer.getPeerId() != null) {
+				if (!Utils.bytesCompare(peer.getPeerId(), (peerId))) {
+					logger.warn(
+							"wrong peer id peer.getID()={} while peerID={}, closing socket",
+							peer.getPeerId(), peerId);
+					peer.getSocket().close();
+					throw new Exception("Wrong peer id");
+				}
+			} else {
+				logger.info("setting peerId to {}", peerId);
+				peer.setPeerId(peerId);
+			}
+			if (Torrent.verbose) {
+				peer.getPeersManager()
+						.getTorrent()
+						.addEvent(
+								new Event(this,
+										"Connection header correctly parsed ",
+										Level.FINER));
+			}
+			peer.getPeersManager().connected(peer);
 
-        } catch (IOException e) {
-            if (Torrent.verbose) {
-                System.err.println("Problem parsing header");
-            }
-            throw e;
-        }
-        return false;
-    }
+		} catch (IOException e) {
+			if (Torrent.verbose) {
+				System.err.println("Problem parsing header");
+			}
+			throw e;
+		}
+		return false;
+	}
 
-    public void interrupt() {
-        try {
-            peer.getSocket().close();
-        } catch (IOException ex) {
-        }
-    }
+	public void interrupt() {
+		try {
+			peer.getSocket().close();
+		} catch (IOException ex) {
+		}
+	}
 
-    public void exceptionCought(Exception e) {
-        if (e instanceof EOFException) {
-            if (Torrent.verbose) {
-                System.err.println("Connection dropped");
-            }
-        }
-        if (incomingPeerListener != null) {
-            incomingPeerListener.removePeer(peer);
-        }
-        peer.interrupt();
-    }
+	public void exceptionCought(Exception e) {
+		if (e instanceof EOFException) {
+			if (Torrent.verbose) {
+				System.err.println("Connection dropped");
+			}
+		}
+		if (incomingPeerListener != null) {
+			incomingPeerListener.removePeer(peer);
+		}
+		peer.interrupt();
+	}
 }

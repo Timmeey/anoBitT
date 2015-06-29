@@ -1,5 +1,10 @@
 package de.timmeey.anoBitT.client;
 
+import java.util.Arrays;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -9,7 +14,7 @@ import asg.cliche.Param;
 import com.google.gson.Gson;
 
 import de.timmeey.anoBitT.dht.DHTService;
-import de.timmeey.anoBitT.exceptions.NotOnlineException;
+import de.timmeey.anoBitT.org.bitlet.wetorrent.TorrentManager;
 import de.timmeey.anoBitT.peerGroup.PeerGroup;
 import de.timmeey.anoBitT.peerGroup.PeerGroupApplicationOffer;
 import de.timmeey.anoBitT.peerGroup.PeerGroupManager;
@@ -18,12 +23,14 @@ import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
 public class ConsoleClient {
 	private final PeerGroupManager peerGroupManager;
 	private final DHTService dhtService;
+	private final TorrentManager torrentManager;
 
 	public ConsoleClient(PeerGroupManager peerGroupManager,
-			DHTService dhtService) {
+			DHTService dhtService, TorrentManager torrentManager) {
 		super();
-		this.peerGroupManager = peerGroupManager;
-		this.dhtService = dhtService;
+		this.peerGroupManager = checkNotNull(peerGroupManager);
+		this.dhtService = checkNotNull(dhtService);
+		this.torrentManager = checkNotNull(torrentManager);
 	}
 
 	@Command(description = "Puts a value into the DHT", abbrev = "put")
@@ -39,8 +46,9 @@ public class ConsoleClient {
 	@Command(description = "Gets a value from the DHT", abbrev = "get")
 	public String getValueFromDHT(
 			@Param(name = "key", description = "Key for the value") String key) {
-		String value = dhtService.get(key);
-		return value;
+		List<String> result = dhtService.get(key);
+		System.out.println(Arrays.toString(result.toArray()));
+		return result.get(0);
 	}
 
 	@Command(description = "Creates a new PeerGroup", abbrev = "createPeerGroup")
@@ -106,6 +114,12 @@ public class ConsoleClient {
 			System.out.println("That doesn't look good");
 		}
 
+	}
+
+	@Command
+	public void addTorrent(String torrentFile, String nameToStore)
+			throws Exception {
+		torrentManager.startTorrent(torrentFile, nameToStore);
 	}
 
 	@Command

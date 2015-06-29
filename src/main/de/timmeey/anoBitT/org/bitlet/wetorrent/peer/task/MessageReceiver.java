@@ -22,6 +22,9 @@ import java.io.IOException;
 import java.net.ProtocolException;
 import java.util.logging.Level;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import de.timmeey.anoBitT.org.bitlet.wetorrent.Event;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.Torrent;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.peer.TorrentPeer;
@@ -29,150 +32,176 @@ import de.timmeey.anoBitT.org.bitlet.wetorrent.peer.message.Message;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.util.thread.ThreadTask;
 
 public class MessageReceiver implements ThreadTask {
+	private final static Logger logger = LoggerFactory
+			.getLogger(MessageReceiver.class);
 
-    private TorrentPeer peer;
-    private long lastReceivedMessageMillis;
-    private long receivedBytes;
+	private TorrentPeer peer;
+	private long lastReceivedMessageMillis;
+	private long receivedBytes;
 
-    public MessageReceiver(TorrentPeer peer) {
-        this.peer = peer;
-    }
+	public MessageReceiver(TorrentPeer peer) {
+		this.peer = peer;
+		this.setLastReceivedMessageMillis(System.currentTimeMillis());
+	}
 
-    private synchronized void addReceivedBytes(Integer byteNumber) {
-        receivedBytes += byteNumber;
-    }
+	private synchronized void addReceivedBytes(Integer byteNumber) {
+		receivedBytes += byteNumber;
+	}
 
-    public synchronized Long getReceivedBytes() {
-        return receivedBytes;
-    }
+	public synchronized Long getReceivedBytes() {
+		return receivedBytes;
+	}
 
-    public boolean execute() throws Exception {
+	public boolean execute() throws Exception {
+		System.out.println("Waiting to receive");
 
-        try {
+		try {
 
-            DataInputStream is = new DataInputStream(peer.getSocket().getInputStream());
+			DataInputStream is = new DataInputStream(peer.getSocket()
+					.getInputStream());
 
-            // peer.getPeersManager().getTorrent().addEvent(new Event(this, "Waiting new message",Level.FINEST));
-            int prefixLength = is.readInt();
+			// peer.getPeersManager().getTorrent().addEvent(new Event(this,
+			// "Waiting new message",Level.FINEST));
+			int prefixLength = is.readInt();
+			System.out.println("Got something");
+			logger.trace("Got something");
 
-            addReceivedBytes(4 + prefixLength);
+			addReceivedBytes(4 + prefixLength);
 
-            if (prefixLength == 0) { // keep alive message
+			if (prefixLength == 0) { // keep alive message
+				logger.trace("Got keepalive");
+				peer.keepAlive();
+			} else if (prefixLength > 0) {
+				byte messageId = is.readByte();
+				logger.trace("Got {} message", messageId);
+				switch (messageId) {
+				case Message.CHOKE: // choke: <len=0001><id=0>
 
-                peer.keepAlive();
-            } else if (prefixLength > 0) {
-                byte messageId = is.readByte();
-                switch (messageId) {
-                    case Message.CHOKE: // choke: <len=0001><id=0>
+					if (prefixLength != 1) {
+						throw new ProtocolException("pl " + prefixLength);
+					}
+					peer.choke();
+					break;
+				case Message.UNCHOKE: // unchoke: <len=0001><id=1>
 
-                        if (prefixLength != 1) {
-                            throw new ProtocolException("pl " + prefixLength);
-                        }
-                        peer.choke();
-                        break;
-                    case Message.UNCHOKE: // unchoke: <len=0001><id=1>
+					if (prefixLength != 1) {
+						throw new ProtocolException();
+					}
+					peer.unchoke();
+					break;
+				case Message.INTERESTED: // interested
 
-                        if (prefixLength != 1) {
-                            throw new ProtocolException();
-                        }
-                        peer.unchoke();
-                        break;
-                    case Message.INTERESTED: // interested
+					if (prefixLength != 1) {
+						throw new ProtocolException();
+					}
+					System.out.println("Got intersted message");
+					peer.interested();
+					break;
+				case Message.NOT_INTERESTED: // not interested
 
-                        if (prefixLength != 1) {
-                            throw new ProtocolException();
-                        }
-                        peer.interested();
-                        break;
-                    case Message.NOT_INTERESTED: // not interested
+					if (prefixLength != 1) {
+						throw new ProtocolException();
+					}
+					peer.notInterested();
+					break;
+				case Message.HAVE: // have: <len=0005><id=4><piece index>
 
-                        if (prefixLength != 1) {
-                            throw new ProtocolException();
-                        }
-                        peer.notInterested();
-                        break;
-                    case Message.HAVE: // have: <len=0005><id=4><piece index>
+					if (prefixLength != 5) {
+						throw new ProtocolException();
+					}
+					peer.have(is.readInt());
+					break;
+				case Message.BITFIELD: // bitfield: <len=0001+X><id=5><bitfield>
 
-                        if (prefixLength != 5) {
-                            throw new ProtocolException();
-                        }
-                        peer.have(is.readInt());
-                        break;
-                    case Message.BITFIELD: // bitfield: <len=0001+X><id=5><bitfield>
+					if (prefixLength != 1 + peer.getBitfieldCopy().length) {
+						throw new ProtocolException();
+					}
+					byte[] bitField = new byte[prefixLength - 1];
+					is.readFully(bitField);
+					peer.bitfield(bitField);
+					break;
+				case Message.REQUEST: // request:
+										// <len=0013><id=6><index><begin><length>
 
-                        if (prefixLength != 1 + peer.getBitfieldCopy().length) {
-                            throw new ProtocolException();
-                        }
-                        byte[] bitField = new byte[prefixLength - 1];
-                        is.readFully(bitField);
-                        peer.bitfield(bitField);
-                        break;
-                    case Message.REQUEST: // request: <len=0013><id=6><index><begin><length>
+					if (prefixLength != 13) {
+						throw new ProtocolException();
+					}
+					peer.request(is.readInt(), is.readInt(), is.readInt());
+					break;
+				case Message.PIECE: // piece:
+									// <len=0009+X><id=7><index><begin><block>
 
-                        if (prefixLength != 13) {
-                            throw new ProtocolException();
-                        }
-                        peer.request(is.readInt(), is.readInt(), is.readInt());
-                        break;
-                    case Message.PIECE: // piece: <len=0009+X><id=7><index><begin><block>
+					if (prefixLength < 10) {
+						throw new ProtocolException();
+					}
+					int index = is.readInt();
+					int begin = is.readInt();
+					byte[] block = new byte[prefixLength - 9];
+					is.readFully(block);
+					peer.piece(index, begin, block);
+					break;
+				case Message.CANCEL: // cancel:
+										// <len=0013><id<=8><index><begin><length>
 
-                        if (prefixLength < 10) {
-                            throw new ProtocolException();
-                        }
-                        int index = is.readInt();
-                        int begin = is.readInt();
-                        byte[] block = new byte[prefixLength - 9];
-                        is.readFully(block);
-                        peer.piece(index, begin, block);
-                        break;
-                    case Message.CANCEL: // cancel: <len=0013><id<=8><index><begin><length>
+					if (prefixLength != 13) {
+						throw new ProtocolException();
+					}
+					peer.cancel(is.readInt(), is.readInt(), is.readInt());
+					break;
+				default:
+					// discard it
+					is.skipBytes(prefixLength - 1);
+					if (Torrent.verbose) {
+						peer.getPeersManager()
+								.getTorrent()
+								.addEvent(
+										new Event(this, "message discarded "
+												+ messageId, Level.FINE));
+					}
+					break;
 
-                        if (prefixLength != 13) {
-                            throw new ProtocolException();
-                        }
-                        peer.cancel(is.readInt(), is.readInt(), is.readInt());
-                        break;
-                    default:
-                        // discard it
-                        is.skipBytes(prefixLength - 1);
-                        if (Torrent.verbose) {
-                            peer.getPeersManager().getTorrent().addEvent(new Event(this, "message discarded " + messageId, Level.FINE));
-                        }
-                        break;
+				}
 
-                }
+			} else {
+				throw new Exception("Negative prefix length");
+			}
+			setLastReceivedMessageMillis(System.currentTimeMillis());
 
-            } else {
-                throw new Exception("Negative prefix length");
-            }
-            setLastReceivedMessageMillis(System.currentTimeMillis());
+		} catch (Exception e) {
+			if (Torrent.verbose) {
+				peer.getPeersManager()
+						.getTorrent()
+						.addEvent(
+								new Event(peer,
+										"Problem waiting for new message",
+										Level.WARNING));
+			}
+			e.printStackTrace(System.err);
+			throw e;
+		}
+		System.out.println("Receiving worked. Returning true");
+		return true;
+	}
 
-        } catch (Exception e) {
-            if (Torrent.verbose) {
-                peer.getPeersManager().getTorrent().addEvent(new Event(peer, "Problem waiting for new message", Level.WARNING));
-            }
-            e.printStackTrace(System.err);
-            throw e;
-        }
-        return true;
-    }
+	public void interrupt() {
+		System.out.println("Receiver interrupted");
+		try {
+			peer.getSocket().close();
+		} catch (IOException ex) {
+		}
+	}
 
-    public void interrupt() {
-        try {
-            peer.getSocket().close();
-        } catch (IOException ex) {
-        }
-    }
+	public void exceptionCought(Exception e) {
+		System.out.println("OH FUCK FUCK FUCK FUCK");
+		peer.interrupt();
+	}
 
-    public void exceptionCought(Exception e) {
-        peer.interrupt();
-    }
+	public synchronized long getLastReceivedMessageMillis() {
+		return lastReceivedMessageMillis;
+	}
 
-    public synchronized long getLastReceivedMessageMillis() {
-        return lastReceivedMessageMillis;
-    }
-
-    public synchronized void setLastReceivedMessageMillis(long lastReceivedMessageMillis) {
-        this.lastReceivedMessageMillis = lastReceivedMessageMillis;
-    }
+	public synchronized void setLastReceivedMessageMillis(
+			long lastReceivedMessageMillis) {
+		this.lastReceivedMessageMillis = lastReceivedMessageMillis;
+	}
 }

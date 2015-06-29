@@ -23,31 +23,33 @@ import de.timmeey.anoBitT.org.bitlet.wetorrent.peer.message.Message;
 
 public interface Peer {
 
-    public void sendMessage(Message message);
+	public void sendMessage(Message message);
 
-    public void setAmInterested(boolean b);
+	public void setAmInterested(boolean b);
 
-    public void setIsChoked(boolean b);
+	public void setIsChoked(boolean b);
 
-    byte[] getPeerId();
+	byte[] getPeerId();
 
-    long getDownloaded();
+	long getDownloaded();
 
-    InetAddress getIp();
+	public int getPort();
 
-    public int getPort();
+	long getLastReceivedMessageMillis();
 
-    long getLastReceivedMessageMillis();
+	int getUnfulfilledRequestNumber();
 
-    int getUnfulfilledRequestNumber();
+	long getUploaded();
 
-    long getUploaded();
+	boolean hasPiece(int index);
 
-    boolean hasPiece(int index);
+	void interrupt();
 
-    void interrupt();
+	boolean isAmChoked();
 
-    boolean isAmChoked();
+	boolean isSeeder();
 
-    boolean isSeeder();
+	String getOutGoingAddress();
+
+	void setOutGoingAddress(String address);
 }

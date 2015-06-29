@@ -37,338 +37,359 @@ import de.timmeey.anoBitT.org.bitlet.wetorrent.peer.task.StartConnection;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.peer.task.StartMessageReceiver;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.util.Utils;
 import de.timmeey.anoBitT.org.bitlet.wetorrent.util.thread.InterruptableTasksThread;
+import de.timmeey.libTimmeey.networking.SocketFactory;
 
 public class TorrentPeer implements Peer {
 
-    private byte[] peerId;
-    private String peerIdEncoded;
-    private int port;
-    private InetAddress ip;
-    private byte[] bitfield;
-    private Socket socket;
-    boolean isChoked = true;
-    boolean isInterested = false;
-    boolean amChoked = true;
-    boolean amInterested = false;
-    private PeersManager peersManager;
-    private InterruptableTasksThread receiverThread;
-    private InterruptableTasksThread mainThread;
-    private long downloaded;
-    private MessageSender messageSender;
-    private MessageReceiver messageReceiver;
-    private List<Request> unfulfilledRequests = new LinkedList<Request>();
+	private byte[] peerId;
+	private int port;
+	private String outGoingAddress;
+	private byte[] bitfield;
+	private Socket socket;
+	boolean isChoked = true;
+	boolean isInterested = false;
+	boolean amChoked = true;
+	boolean amInterested = false;
+	private PeersManager peersManager;
+	private InterruptableTasksThread receiverThread;
+	private InterruptableTasksThread mainThread;
+	private long downloaded;
+	private MessageSender messageSender;
+	private MessageReceiver messageReceiver;
+	private List<Request> unfulfilledRequests = new LinkedList<Request>();
 
-    public TorrentPeer(byte[] peerId, InetAddress ip, int port, PeersManager peersManager) {
-        this.peersManager = peersManager;
-        this.peerId = peerId;
-        peerIdEncoded = Utils.byteArrayToURLString(peerId);
-        this.port = port;
-        this.ip = ip;
+	public TorrentPeer(byte[] peerId, String address, int port,
+			PeersManager peersManager, SocketFactory plainSocketFactory,
+			SocketFactory torSocketFactory) {
+		this.peersManager = peersManager;
+		this.peerId = peerId;
+		this.outGoingAddress = address;
+		this.port = port;
 
-        bitfield = new byte[peersManager.getTorrent().getTorrentDisk().getBitfieldCopy().length];
+		bitfield = new byte[peersManager.getTorrent().getTorrentDisk()
+				.getBitfieldCopy().length];
 
-        mainThread = new InterruptableTasksThread();
-        mainThread.addTask(new StartConnection(this));
-        mainThread.addTask(new Handshake(this));
-        mainThread.addTask(new SendBitfield(this));
+		mainThread = new InterruptableTasksThread();
+		mainThread.addTask(new StartConnection(this, plainSocketFactory,
+				torSocketFactory));
+		mainThread.addTask(new Handshake(this));
+		mainThread.addTask(new SendBitfield(this));
 
-        receiverThread = new InterruptableTasksThread();
-        messageReceiver = new MessageReceiver(this);
-        receiverThread.addTask(messageReceiver);
-        mainThread.addTask(new StartMessageReceiver(this));
-        messageSender = new MessageSender(this);
-        mainThread.addTask(messageSender);
+		receiverThread = new InterruptableTasksThread();
+		messageReceiver = new MessageReceiver(this);
+		receiverThread.addTask(messageReceiver);
+		mainThread.addTask(new StartMessageReceiver(this));
+		messageSender = new MessageSender(this);
+		mainThread.addTask(messageSender);
 
-    }
+	}
 
-    public TorrentPeer(Socket socket, IncomingPeerListener incomingPeerListener) {
-        this.socket = socket;
-        port = socket.getPort();
-        ip = socket.getInetAddress();
+	public TorrentPeer(Socket socket, IncomingPeerListener incomingPeerListener) {
+		this.socket = socket;
+		port = socket.getPort();
 
+		mainThread = new InterruptableTasksThread();
+		mainThread.addTask(new Handshake(this, incomingPeerListener));
+		mainThread.addTask(new SendBitfield(this));
 
-        mainThread = new InterruptableTasksThread();
-        mainThread.addTask(new Handshake(this, incomingPeerListener));
-        mainThread.addTask(new SendBitfield(this));
+		receiverThread = new InterruptableTasksThread();
+		messageReceiver = new MessageReceiver(this);
+		receiverThread.addTask(messageReceiver);
+		mainThread.addTask(new StartMessageReceiver(this));
+		messageSender = new MessageSender(this);
+		mainThread.addTask(messageSender);
 
-        receiverThread = new InterruptableTasksThread();
-        messageReceiver = new MessageReceiver(this);
-        receiverThread.addTask(messageReceiver);
-        mainThread.addTask(new StartMessageReceiver(this));
-        messageSender = new MessageSender(this);
-        mainThread.addTask(messageSender);
+	}
 
-    }
+	public void start() {
+		mainThread.start();
+	}
 
-    public void start() {
-        mainThread.start();
-    }
+	public void exceptionCought(Exception e) {
 
-    public void exceptionCought(Exception e) {
+		if (Torrent.verbose) {
+			peersManager.getTorrent().addEvent(
+					new Event(e, "UUoops exception cought.", Level.WARNING));
+		}
+		receiverThread.interrupt();
+		mainThread.interrupt();
+	}
 
-        if (Torrent.verbose) {
-            peersManager.getTorrent().addEvent(new Event(e, "UUoops exception cought.", Level.WARNING));
-        }
-        receiverThread.interrupt();
-        mainThread.interrupt();
-    }
+	public byte[] getPeerId() {
+		return peerId;
+	}
 
-    public String getPeerIdEncoded() {
-        return peerIdEncoded;
-    }
+	public void setSocket(Socket socket) {
+		this.socket = socket;
+	}
 
-    public byte[] getPeerId() {
-        return peerId;
-    }
+	public Socket getSocket() {
+		return socket;
+	}
 
-    public void setPeerId(byte[] peerId) {
-        this.peerId = peerId;
-    }
+	public PeersManager getPeersManager() {
+		return peersManager;
+	}
 
-    public void setSocket(Socket socket) {
-        this.socket = socket;
-    }
+	public int getPort() {
+		return port;
+	}
 
-    public Socket getSocket() {
-        return socket;
-    }
+	public synchronized void setBitfield(byte[] bitfield) {
+		this.bitfield = bitfield;
+		System.out.println("Has piece 5?" + this.hasPiece(5));
+	}
 
-    public PeersManager getPeersManager() {
-        return peersManager;
-    }
+	/* messages sent by remote peer */
+	public void bitfield(byte[] bitfield) {
 
-    public InetAddress getIp() {
-        return ip;
-    }
+		if (Torrent.verbose) {
+			peersManager.getTorrent().addEvent(
+					new Event(this, "Bitfield received ", Level.FINEST));
+		}
+		setBitfield(bitfield);
+		peersManager.getTorrent().bitfield(bitfield, this);
+	}
 
-    public int getPort() {
-        return port;
-    }
+	public void choke() {
 
-    public synchronized void setBitfield(byte[] bitfield) {
-        this.bitfield = bitfield;
-    }
+		if (Torrent.verbose) {
+			peersManager.getTorrent().addEvent(
+					new Event(this, "Choke received ", Level.FINEST));
+		}
+		amChoked = true;
+		peersManager.getTorrent().choke(this);
+	}
 
-    /*messages sent by remote peer*/
-    public void bitfield(byte[] bitfield) {
+	public void unchoke() {
+		if (Torrent.verbose) {
+			peersManager.getTorrent().addEvent(
+					new Event(this, "Unchoke received ", Level.FINEST));
+		}
+		amChoked = false;
+		/* if there are pending request not satisfied */
+		messageSender.cancelAll();
+		peersManager.getTorrent().unchoke(this);
+	}
 
-        if (Torrent.verbose) {
-            peersManager.getTorrent().addEvent(new Event(this, "Bitfield received ", Level.FINEST));
-        }
-        setBitfield(bitfield);
-        peersManager.getTorrent().bitfield(bitfield, this);
-    }
+	public void interested() {
+		if (Torrent.verbose) {
+			peersManager.getTorrent().addEvent(
+					new Event(this, "Interested received ", Level.FINEST));
+		}
+		isInterested = true;
+		peersManager.getTorrent().interested(this);
+	}
 
-    public void choke() {
+	public void notInterested() {
+		if (Torrent.verbose) {
+			peersManager.getTorrent().addEvent(
+					new Event(this, "Not interested received ", Level.FINEST));
+		}
+		isInterested = false;
+		peersManager.getTorrent().notInterested(this);
+	}
 
-        if (Torrent.verbose) {
-            peersManager.getTorrent().addEvent(new Event(this, "Choke received ", Level.FINEST));
-        }
-        amChoked = true;
-        peersManager.getTorrent().choke(this);
-    }
+	public void have(int i) {
 
-    public void unchoke() {
-        if (Torrent.verbose) {
-            peersManager.getTorrent().addEvent(new Event(this, "Unchoke received ", Level.FINEST));
-        }
-        amChoked = false;
-        /* if there are pending request not satisfied */
-        messageSender.cancelAll();
-        peersManager.getTorrent().unchoke(this);
-    }
+		if (Torrent.verbose) {
+			peersManager.getTorrent().addEvent(
+					new Event(this, "Have received ", Level.FINEST));
+		}
+		setPiece(i);
+		peersManager.getTorrent().have(i, this);
+	}
 
-    public void interested() {
-        if (Torrent.verbose) {
-            peersManager.getTorrent().addEvent(new Event(this, "Interested received ", Level.FINEST));
-        }
-        isInterested = true;
-        peersManager.getTorrent().interested(this);
-    }
+	public void request(int index, int begin, int length) {
+		if (Torrent.verbose) {
+			peersManager.getTorrent().addEvent(
+					new Event(this, "Request received ", Level.FINEST));
+			/* TODO: Check block avaiabilty */
+		}
+		if (!isChoked) {
+			messageSender.addMessage(new Piece(index, begin, length,
+					peersManager.getTorrent().getTorrentDisk()));
+		}
+	}
 
-    public void notInterested() {
-        if (Torrent.verbose) {
-            peersManager.getTorrent().addEvent(new Event(this, "Not interested received ", Level.FINEST));
-        }
-        isInterested = false;
-        peersManager.getTorrent().notInterested(this);
-    }
+	public void piece(int index, int begin, byte[] block) {
+		if (Torrent.verbose) {
+			peersManager.getTorrent().addEvent(
+					new Event(this, "Piece received " + index + " " + begin
+							+ " " + block.length, Level.FINEST));
+		}
+		downloaded += block.length;
+		if (requestFulfilled(index, begin, block))
+			peersManager.getTorrent().piece(index, begin, block, this);
+	}
 
-    public void have(int i) {
+	public void cancel(int index, int begin, int length) {
+		if (Torrent.verbose) {
+			peersManager.getTorrent().addEvent(
+					new Event(this, "Cancel received ", Level.FINEST));
+		}
+		messageSender.cancel(index, begin, length);
+	}
 
-        if (Torrent.verbose) {
-            peersManager.getTorrent().addEvent(new Event(this, "Have received ", Level.FINEST));
-        }
-        setPiece(i);
-        peersManager.getTorrent().have(i, this);
-    }
+	public InterruptableTasksThread getReceiverThread() {
+		return receiverThread;
+	}
 
-    public void request(int index, int begin, int length) {
-        if (Torrent.verbose) {
-            peersManager.getTorrent().addEvent(new Event(this, "Request received ", Level.FINEST));
-        /* TODO: Check block avaiabilty */
-        }
-        if (!isChoked) {
-            messageSender.addMessage(new Piece(index, begin, length, peersManager.getTorrent().getTorrentDisk()));
-        }
-    }
+	public synchronized void sendMessage(Message message) {
 
-    public void piece(int index, int begin, byte[] block) {
-        if (Torrent.verbose) {
-            peersManager.getTorrent().addEvent(new Event(this, "Piece received " + index + " " + begin + " " + block.length, Level.FINEST));
-        }
-        downloaded += block.length;
-        if (requestFulfilled(index, begin, block))
-            peersManager.getTorrent().piece(index, begin, block, this);
-    }
+		messageSender.addMessage(message);
+		switch (message.getType()) {
+		case Message.REQUEST:
+			addRequest((Request) message);
+			break;
+		case Message.CANCEL:
+			Cancel cancel = (Cancel) message;
+			requestCanceled(cancel.getIndex(), cancel.getBegin());
+			break;
+		}
 
-    public void cancel(int index, int begin, int length) {
-        if (Torrent.verbose) {
-            peersManager.getTorrent().addEvent(new Event(this, "Cancel received ", Level.FINEST));
-        }
-        messageSender.cancel(index, begin, length);
-    }
+	}
 
-    public InterruptableTasksThread getReceiverThread() {
-        return receiverThread;
-    }
+	public void interrupt() {
+		Thread.dumpStack();
+		System.out.println("Interrupting from TorrentPeer");
+		mainThread.interrupt();
+		receiverThread.interrupt();
+		if (peersManager != null) {
+			peersManager.interrupted(this);
+		}
+	}
 
-    public synchronized void sendMessage(Message message) {
+	public synchronized byte[] getBitfieldCopy() {
+		return bitfield.clone();
+	}
 
-        messageSender.addMessage(message);
-        switch (message.getType()) {
-            case Message.REQUEST:
-                addRequest((Request) message);
-                break;
-            case Message.CANCEL:
-                Cancel cancel = (Cancel) message;
-                requestCanceled(cancel.getIndex(), cancel.getBegin());
-                break;
-        }
+	public synchronized boolean hasPiece(int index) {
+		return (bitfield[index >> 3] & (0x80 >> (index & 0x7))) > 0;
+	}
 
+	public synchronized void setPiece(int index) {
+		bitfield[index >> 3] |= (0x80 >> (index & 0x7));
+	}
 
-    }
+	public void keepAlive() {
+		long now = System.currentTimeMillis();
 
-    public void interrupt() {
-        mainThread.interrupt();
-        receiverThread.interrupt();
-        if (peersManager != null) {
-            peersManager.interrupted(this);
-        }
-    }
+		if (now - messageSender.getLastSentMessageMillis() < 2000) {
+			sendMessage(new Message(Message.KEEP_ALIVE, null));
+		}
+	}
 
-    public synchronized byte[] getBitfieldCopy() {
-        return bitfield.clone();
-    }
+	public long getUploaded() {
+		return messageSender.getUploaded();
+	}
 
-    public synchronized boolean hasPiece(int index) {
-        return (bitfield[index >> 3] & (0x80 >> (index & 0x7))) > 0;
-    }
+	public long getDownloaded() {
+		return downloaded;
+	}
 
-    public synchronized void setPiece(int index) {
-        bitfield[index >> 3] |= (0x80 >> (index & 0x7));
-    }
+	public void setAmInterested(boolean amInterested) {
+		System.out.println("amInteested called with: " + amInterested);
+		if (!this.amInterested && amInterested) {
+			System.out.println("Sending interested message");
+			sendMessage(new Message(Message.INTERESTED, null));
+		} else if (this.amInterested && !amInterested) {
+			System.out.println("Sending notInterested message");
+			sendMessage(new Message(Message.NOT_INTERESTED, null));
+		}
+		this.amInterested = amInterested;
 
-    public void keepAlive() {
-        long now = System.currentTimeMillis();
+	}
 
-        if (now - messageSender.getLastSentMessageMillis() < 2000) {
-            sendMessage(new Message(Message.KEEP_ALIVE, null));
-        }
-    }
+	public void setIsChoked(boolean isChoked) {
+		if (!this.isChoked && isChoked) {
+			sendMessage(new Message(Message.CHOKE, null));
+		} else if (this.isChoked && !isChoked) {
+			sendMessage(new Message(Message.UNCHOKE, null));
+		}
+		this.isChoked = isChoked;
+	}
 
-    public long getUploaded() {
-        return messageSender.getUploaded();
-    }
+	public boolean isIsChoked() {
+		return isChoked;
+	}
 
-    public long getDownloaded() {
-        return downloaded;
-    }
+	public boolean isAmChoked() {
+		return amChoked;
+	}
 
-    public void setAmInterested(boolean amInterested) {
-        if (!this.amInterested && amInterested) {
-            sendMessage(new Message(Message.INTERESTED, null));
-        } else if (this.amInterested && !amInterested) {
-            sendMessage(new Message(Message.NOT_INTERESTED, null));
-        }
-        this.amInterested = amInterested;
+	public synchronized boolean isSeeder() {
+		for (int i = 0; i < getPeersManager().getTorrent().getMetafile()
+				.getPieces().size(); i++) {
+			if (!hasPiece(i))
+				return false;
+		}
+		return true;
+	}
 
-    }
+	private synchronized void addRequest(Request request) {
+		unfulfilledRequests.add(request);
+	}
 
-    public void setIsChoked(boolean isChoked) {
-        if (!this.isChoked && isChoked) {
-            sendMessage(new Message(Message.CHOKE, null));
-        } else if (this.isChoked && !isChoked) {
-            sendMessage(new Message(Message.UNCHOKE, null));
-        }
-        this.isChoked = isChoked;
-    }
+	public synchronized int getUnfulfilledRequestNumber() {
+		return unfulfilledRequests.size();
+	}
 
-    public boolean isIsChoked() {
-        return isChoked;
-    }
+	private synchronized boolean requestFulfilled(int index, int begin,
+			byte[] block) {
+		for (Request r : unfulfilledRequests) {
+			if (r.getIndex() == index && r.getBegin() == begin
+					&& r.getLength() == block.length) {
+				unfulfilledRequests.remove(r);
+				return true;
+			}
+		}
 
-    public boolean isAmChoked() {
-        return amChoked;
-    }
+		return false;
+	}
 
-    public synchronized boolean isSeeder() {
-        for (int i = 0; i < getPeersManager().getTorrent().getMetafile().getPieces().size(); i++) {
-            if(!hasPiece(i))
-                return false;
-        }
-        return true;
-    }
+	private synchronized boolean requestCanceled(int index, int begin) {
+		for (Request r : unfulfilledRequests) {
+			if (r.getIndex() == index && r.getBegin() == begin) {
+				unfulfilledRequests.remove(r);
+				return true;
+			}
+		}
 
-    private synchronized void addRequest(Request request) {
-        unfulfilledRequests.add(request);
-    }
+		return false;
+	}
 
-    public synchronized int getUnfulfilledRequestNumber() {
-        return unfulfilledRequests.size();
-    }
+	public synchronized Request getLastUnfulfilledRequest() {
+		if (unfulfilledRequests.size() == 0) {
+			return null;
+		}
+		Request last = unfulfilledRequests.get(unfulfilledRequests.size() - 1);
+		return last;
+	}
 
-    private synchronized boolean requestFulfilled(int index, int begin, byte[] block) {
-        for (Request r : unfulfilledRequests) {
-            if (r.getIndex() == index && r.getBegin() == begin && r.getLength() == block.length) {
-                unfulfilledRequests.remove(r);
-                return true;
-            }
-        }
+	public long getLastReceivedMessageMillis() {
+		return messageReceiver.getLastReceivedMessageMillis();
+	}
 
-        return false;
-    }
+	void setPeersManager(PeersManager peersManager) {
+		this.peersManager = peersManager;
+		bitfield = new byte[peersManager.getTorrent().getTorrentDisk()
+				.getBitfieldCopy().length];
+	}
 
-    private synchronized boolean requestCanceled(int index, int begin) {
-        for (Request r : unfulfilledRequests) {
-            if (r.getIndex() == index && r.getBegin() == begin) {
-                unfulfilledRequests.remove(r);
-                return true;
-            }
-        }
+	public void setPeerId(byte[] peerId2) {
+		this.peerId = peerId2;
 
-        return false;
-    }
+	}
 
-    public synchronized Request getLastUnfulfilledRequest() {
-        if (unfulfilledRequests.size() == 0) {
-            return null;
-        }
-        Request last = unfulfilledRequests.get(unfulfilledRequests.size() - 1);
-        return last;
-    }
+	@Override
+	public String getOutGoingAddress() {
+		return this.outGoingAddress;
+	}
 
-    public long getLastReceivedMessageMillis() {
-        return messageReceiver.getLastReceivedMessageMillis();
-    }
-
-    void setPeersManager(PeersManager peersManager) {
-        this.peersManager = peersManager;
-        bitfield = new byte[peersManager.getTorrent().getTorrentDisk().getBitfieldCopy().length];
-    }
+	@Override
+	public void setOutGoingAddress(String address) {
+		this.outGoingAddress = address;
+		return;
+	}
 }
-
-
-
-
-

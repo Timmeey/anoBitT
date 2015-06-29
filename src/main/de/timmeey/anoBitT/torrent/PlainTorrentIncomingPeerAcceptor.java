@@ -3,6 +3,8 @@ package de.timmeey.anoBitT.torrent;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +22,7 @@ public class PlainTorrentIncomingPeerAcceptor extends Thread {
 	private final SocketFactory socketFactory;
 	private final PeerGroupManager peerGroupManager;
 	private final int port;
+	public static List<SocketTransferRateWrapper> sockets = new ArrayList<>();
 
 	public PlainTorrentIncomingPeerAcceptor(
 			IncomingPeerListener incomingListener, SocketFactory socketFactory,
@@ -39,21 +42,25 @@ public class PlainTorrentIncomingPeerAcceptor extends Thread {
 					port);
 			while (!Thread.interrupted()) {
 				try {
-					Socket c = s.accept();
+					Socket cl = s.accept();
+					// SocketTransferRateWrapper cl = new
+					// SocketTransferRateWrapper(
+					// s.accept());
+					// sockets.add(cl);
 					logger.debug(
 							"Woho, got a torrent connection from {}, verifying now",
-							c.getInetAddress());
-					boolean verification = checkConnectionIsFromTrustedGroupMember(c);
+							cl.getInetAddress());
+					boolean verification = checkConnectionIsFromTrustedGroupMember(cl);
 					if (verification) {
 						logger.debug(
 								"Client {} is a verified peerGroupMember, dispatching socket to torrentLib",
-								c.getInetAddress());
-						incomingListener.addConnection(c);
+								cl.getInetAddress());
+						incomingListener.addConnection(cl);
 					} else {
 						logger.warn(
 								"Client {} is not a known member of any peerGroup, dropping socket",
-								c.getInetAddress());
-						c.close();
+								cl.getInetAddress());
+						cl.close();
 					}
 				} catch (IOException e) {
 					logger.debug("Got IOxception from peerGroupMember torrent socket");

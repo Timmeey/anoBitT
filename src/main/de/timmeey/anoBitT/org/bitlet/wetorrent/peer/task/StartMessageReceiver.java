@@ -26,30 +26,37 @@ import de.timmeey.anoBitT.org.bitlet.wetorrent.util.thread.ThreadTask;
 
 public class StartMessageReceiver implements ThreadTask {
 
-    private TorrentPeer peer;
+	private TorrentPeer peer;
 
-    public StartMessageReceiver(TorrentPeer peer) {
-        this.peer = peer;
-    }
+	public StartMessageReceiver(TorrentPeer peer) {
+		this.peer = peer;
+	}
 
-    public boolean execute() throws Exception {
+	public boolean execute() throws Exception {
+		System.out.println("Starting receiver thread");
 
-        try {
-            peer.getReceiverThread().start();
-        } catch (Exception e) {
+		try {
+			peer.getReceiverThread().start();
+			System.out.println("Receiver thread started");
+		} catch (Exception e) {
 
-            if (Torrent.verbose) {
-                peer.getPeersManager().getTorrent().addEvent(new Event(this, "Problem starting MessageReceiver", Level.WARNING));
-            }
-            throw e;
-        }
-        return false;
-    }
+			if (Torrent.verbose) {
+				peer.getPeersManager()
+						.getTorrent()
+						.addEvent(
+								new Event(this,
+										"Problem starting MessageReceiver",
+										Level.WARNING));
+			}
+			throw e;
+		}
+		return false;
+	}
 
-    public void interrupt() {
-    }
+	public void interrupt() {
+	}
 
-    public void exceptionCought(Exception e) {
-        peer.interrupt();
-    }
+	public void exceptionCought(Exception e) {
+		peer.interrupt();
+	}
 }

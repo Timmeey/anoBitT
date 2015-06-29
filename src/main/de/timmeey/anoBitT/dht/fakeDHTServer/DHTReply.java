@@ -1,12 +1,14 @@
 package de.timmeey.anoBitT.dht.fakeDHTServer;
 
+import java.util.List;
+
 import de.timmeey.libTimmeey.networking.communicationServer.HTTPResponse;
 
 public class DHTReply extends HTTPResponse {
 	private final String key;
-	private final String value;
+	private final List<String> value;
 
-	protected DHTReply(String key, String value) {
+	protected DHTReply(String key, List<String> value) {
 		this.key = key;
 		this.value = value;
 
@@ -16,7 +18,7 @@ public class DHTReply extends HTTPResponse {
 		return key;
 	}
 
-	public String getValue() {
+	public List<String> getValue() {
 		return value;
 	}
 

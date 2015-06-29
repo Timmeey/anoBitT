@@ -17,128 +17,115 @@
 
 package de.timmeey.anoBitT.org.bitlet.wetorrent;
 
-import static de.timmeey.anoBitT.org.bitlet.wetorrent.util.Utils.toByteBuffer;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.ByteBuffer;
-import java.util.Map;
-import java.util.logging.Level;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
 
-import de.timmeey.anoBitT.org.bitlet.wetorrent.bencode.Bencode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Sets;
+
+import de.timmeey.anoBitT.dht.DHTService;
+import de.timmeey.anoBitT.peerGroup.PeerGroupManager;
+import de.timmeey.anoBitT.peerGroup.Member.PeerGroupMember;
+import de.timmeey.anoBitT.tor.KeyPair;
+import de.timmeey.anoBitT.torrent.MinimalPeer;
+import de.timmeey.libTimmeey.exceptions.checked.SerializerException;
+import de.timmeey.libTimmeey.networking.NetSerializer;
 
 public class Tracker {
+	private final static Logger logger = LoggerFactory.getLogger(Tracker.class);
 
-    String announce;
-    private Long lastRequestTime;
-    private Long interval;
-    private Long minInterval;
-    private String trackerId;
-    private String key;
-    private Long complete;
-    private Long incomplete;
+	private final DHTService dht;
+	public static byte[] peerID = new byte[20];
 
-    public Tracker(String announce) {
-        this.announce = announce;
-    }
+	private final PeerGroupManager peerGroupManager;
 
-    public Map trackerRequest(Torrent torrent, String event) throws MalformedURLException, IOException {
+	private final NetSerializer gson;
 
-        String trackerUrlString = announce;
-        trackerUrlString += "?info_hash=" + torrent.getMetafile().getInfoSha1Encoded();
-        trackerUrlString += "&peer_id=" + torrent.getPeerIdEncoded();
-        trackerUrlString += "&port=" + torrent.getIncomingPeerListener().getPort();
-        trackerUrlString += "&uploaded=" + torrent.getPeersManager().getUploaded();
-        trackerUrlString += "&downloaded=" + torrent.getPeersManager().getDownloaded();
-        trackerUrlString += "&left=" + (torrent.getMetafile().getLength() - torrent.getTorrentDisk().getCompleted());
-        trackerUrlString += "&compact=1";
-        if (event != null) {
-            trackerUrlString += "&event=" + event;
-        }
-        if (trackerId != null) {
-            trackerUrlString += "&tracker_id=" + trackerId;
-        }
-        if (key != null){
-            trackerUrlString += "&key=" + key;
-        }
-        URL trackerUrl = new URL(trackerUrlString);
+	private final KeyPair keyPair;
 
-        if (Torrent.verbose) {
-            torrent.addEvent(new Event(this, "Querying tracker: " + trackerUrl.toString(), Level.FINE));
-        }
-        HttpURLConnection conn = (HttpURLConnection) trackerUrl.openConnection();
-        conn.setRequestProperty("User-Agent", torrent.agent);
+	private final long REQUEST_INTERVAL = 90 * 1000L;
 
-        Bencode trackerResponse = new Bencode(new BufferedInputStream(conn.getInputStream()));
-        lastRequestTime = System.currentTimeMillis();
+	public long getREQUEST_INTERVAL() {
+		return REQUEST_INTERVAL;
+	}
 
-        Map responseDictionary = (Map) trackerResponse.getRootElement();
+	public long getLastRequestTime() {
+		return lastRequest;
+	}
 
-        byte[] failureReasonByteString = null;
-        ByteBuffer failureReasonByteBuffer = (ByteBuffer) responseDictionary.get(toByteBuffer("failure reason"));
-        if (failureReasonByteBuffer != null) {
-            failureReasonByteString = failureReasonByteBuffer.array();
-        }
-        if (failureReasonByteString != null) {
-            String failureReason = new String(failureReasonByteString);
-            if (Torrent.verbose) {
-                torrent.addEvent(new Event(this, "Tracker response failure: " + failureReason, Level.SEVERE));
-            }
-            return null;
-        }
+	private long lastRequest = 0;
 
-        try {
-            byte[] warningMessageByteString = null;
-            ByteBuffer warningMessageByteBuffer = (ByteBuffer) responseDictionary.get(toByteBuffer("warning message"));
-            if (warningMessageByteBuffer != null) {
-                warningMessageByteString = warningMessageByteBuffer.array();
-            }
-            if (warningMessageByteString != null) {
-                String warningMessage = new String(warningMessageByteString);
-                if (Torrent.verbose) {
-                    torrent.addEvent(new Event(this, "Tracker response warning " + warningMessage, Level.WARNING));
-                }
-            }
-        } catch (Exception e) {
-        }
+	public Tracker(DHTService dht, NetSerializer gson,
+			PeerGroupManager peerGroupManager, KeyPair keyPair) {
+		this.dht = checkNotNull(dht);
+		this.gson = checkNotNull(gson);
+		this.peerGroupManager = checkNotNull(peerGroupManager);
+		this.keyPair = checkNotNull(keyPair);
+		new Random().nextBytes(peerID);
+	}
 
-        byte[] trackerIdByteString = null;
-        ByteBuffer trackerIdByteBuffer = (ByteBuffer) responseDictionary.get(toByteBuffer("tracker id"));
-        if (trackerIdByteBuffer != null) {
-            trackerIdByteString = trackerIdByteBuffer.array();
-        }
-        if (trackerIdByteString != null) {
-            trackerId = new String(trackerIdByteString);
-            if (Torrent.verbose) {
-                torrent.addEvent(new Event(this, "Tracker id: " + trackerId, Level.FINE));
-            }
-        }
+	public Set<MinimalPeer> getMorePeers(Torrent torrent) {
+		logger.debug("Geetin more peers for {}", torrent.getName());
+		lastRequest = System.currentTimeMillis();
+		String infoHash = torrent.getMetafile().getInfoSha1Encoded();
+		Set<MinimalPeer> peers = Sets.newHashSet();
 
-        interval = (Long) responseDictionary.get(toByteBuffer("interval"));
-        minInterval = (Long) responseDictionary.get(toByteBuffer("min interval"));
-        complete = (Long) responseDictionary.get(toByteBuffer("complete"));
-        incomplete = (Long) responseDictionary.get(toByteBuffer("incomplete"));
+		List<String> answer = dht.get(infoHash);
+		logger.debug("answer was <{}>, and hat {} entries", answer,
+				answer.size());
+		if (answer != null) {
+			for (String peer : answer) {
+				MinimalPeer tmpPeer = gson.fromJson(peer, MinimalPeer.class);
+				if (tmpPeer.getAddress().equals(keyPair.getOnionAddress())) {
+					// we don't want self connections
+					break;
+				}
+				Optional<PeerGroupMember> member = peerGroupManager
+						.getMemberForOnionAddress(tmpPeer.getAddress());
 
-        return responseDictionary;
-    }
+				if (member.isPresent()) {
+					logger.debug("Found peerGroupMember for onionaddress {}",
+							member.get().getOnionAddress());
+					tmpPeer.setAddress(member.get().getIpAddress());
 
-    public Long getInterval() {
-        return interval;
-    }
+				} else {
+					logger.debug(
+							"OnionAddress {} ist not a member of any peergroup",
+							tmpPeer.getAddress());
+				}
 
-    public Long getMinInterval() {
-        return minInterval;
-    }
+				peers.add(tmpPeer);
 
-    public Long getLastRequestTime() {
-        return lastRequestTime;
-    }
+			}
+			logger.trace("Peers <{}>", peers);
+			return peers;
+		}
+		return peers;
 
-    public void setKey(String key) {
-        this.key = key;
-    }
-    
+	}
+
+	public void stop(Torrent torrent) {
+		// Remove me from dht
+		return;
+	}
+
+	public void start(Torrent torrent) throws SerializerException {
+		logger.debug("Putting myself into DHT for torret {}", torrent.getName());
+		MinimalPeer selfPeer = new MinimalPeer(peerID,
+				keyPair.getOnionAddress());
+		dht.put(torrent.getMetafile().getInfoSha1Encoded(),
+				gson.toJson(selfPeer), true);
+		return;
+	}
+
+	public byte[] getPeerId() {
+		return this.peerID;
+	}
+
 }

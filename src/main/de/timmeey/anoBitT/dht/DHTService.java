@@ -33,7 +33,7 @@ public interface DHTService {
 	 *            The key of the wanted value
 	 * @return the requested value or NULL if not found
 	 */
-	public String get(String key);
+	public List<String> get(String key);
 
 	public List<String> getNodes();
 

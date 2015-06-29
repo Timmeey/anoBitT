@@ -1,8 +1,10 @@
 package de.timmeey.anoBitT.dht.fakeDHTServer;
 
 import java.net.ServerSocket;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.slf4j.Logger;
@@ -30,7 +32,7 @@ import de.timmeey.libTimmeey.properties.PropertiesFactory;
 public class DHTServer {
 	private static final Logger logger = LoggerFactory
 			.getLogger(DHTServer.class);
-	private static HashMap<String, String> dht = new HashMap<String, String>();
+	private static HashMap<String, List<String>> dht = new HashMap<String, List<String>>();
 	private static HashMap<String, Long> dhtTMO = new HashMap<String, Long>();
 	private static final Object readLock = new Object();
 	private static final Object writeLock = new Object();
@@ -74,7 +76,7 @@ public class DHTServer {
 			public HttpContext handle(HttpContext ctx) {
 				logger.trace("Get request");
 				DHTGetRequest request = ctx.getPayload(DHTGetRequest.class);
-				String value = getValue(request.getKey());
+				List<String> value = getValue(request.getKey());
 				ctx.setResponse(new DHTReply(request.getKey(), value));
 				ctx.setResponseCode(ResponseCode.SUCCESS);
 				return ctx;
@@ -89,7 +91,8 @@ public class DHTServer {
 				logger.trace("Put request");
 				DHTPutRequest put = ctx.getPayload(DHTPutRequest.class);
 				putValue(put.getKey(), put.getValue());
-				ctx.setResponse(new DHTReply(put.getKey(), put.getValue()));
+				ctx.setResponse(new DHTReply(put.getKey(),
+						dht.get(put.getKey())));
 				ctx.setResponseCode(ResponseCode.SUCCESS);
 				return ctx;
 
@@ -115,15 +118,25 @@ public class DHTServer {
 
 		synchronized (writeLock) {
 			logger.trace("putting " + value);
-			dht.put(key, value);
+			List<String> previous = dht.get(key);
+			if (previous != null) {
+				previous.add(value);
+				dht.put(key, previous);
+			} else {
+				previous = new ArrayList<String>();
+				previous.add(value);
+
+				dht.put(key, previous);
+
+			}
 			dhtTMO.put(key, System.currentTimeMillis());
 		}
 
 	}
 
-	public static String getValue(String key) {
+	public static List<String> getValue(String key) {
 		synchronized (readLock) {
-			String value = dht.get(key);
+			List<String> value = dht.get(key);
 			logger.trace("Reading " + key);
 			dhtTMO.put(key, System.currentTimeMillis());
 			return value;

@@ -1,12 +1,12 @@
 package de.timmeey.anoBitT.dht.impl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,31 +51,34 @@ public class DHTServiceFakeImpl implements DHTService {
 			try {
 				realReply = putReply.get(60, TimeUnit.SECONDS);
 				result = realReply.getKey().equals(key)
-						&& realReply.getValue().equals(value);
+						&& realReply.getValue().contains(value);
 
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 				logger.warn("request threw InterruptedException: {}",
 						e.getMessage());
+				result = false;
 
 			} catch (ExecutionException e) {
 
 				e.printStackTrace();
 				logger.warn("request threw ExecutionException: {}",
 						e.getMessage());
+				result = false;
 			} catch (TimeoutException e) {
 				e.printStackTrace();
 				logger.warn("request threw TimeoutException: {}",
 						e.getMessage());
+				result = false;
 			}
 
 		}
 		return result;
 	}
 
-	public String get(String key) {
-		String result = null;
+	public List<String> get(String key) {
+		List<String> result = null;
 		DHTGetRequest getRequest = new DHTGetRequest(host, key);
 		// DHTGetRequest getRequest = new DHTGetRequest("localhost", key);
 

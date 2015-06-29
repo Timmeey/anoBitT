@@ -17,6 +17,7 @@
 
 package de.timmeey.anoBitT.org.bitlet.wetorrent.peer;
 
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -44,12 +45,17 @@ public class IncomingPeerListener extends InterruptableTasksThread {
 
 	public IncomingPeerListener(SocketFactory torSocketFactory,
 			SocketFactory plainSocketFactory,
-			PeerGroupManager peerGroupManager, int port) {
+			PeerGroupManager peerGroupManager, int port) throws IOException {
 
 		plainAcceptor = new PlainTorrentIncomingPeerAcceptor(this,
 				plainSocketFactory, peerGroupManager, port);
+		plainAcceptor.setDaemon(true);
 		torAcceptor = new TorTorrentIncomingPeerAcceptor(this,
 				torSocketFactory, port);
+		torAcceptor.setDaemon(true);
+		// plainAcceptor.start();
+		torAcceptor.start();
+		this.port = port;
 
 	}
 

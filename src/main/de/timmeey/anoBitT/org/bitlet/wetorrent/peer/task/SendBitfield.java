@@ -19,6 +19,7 @@ package de.timmeey.anoBitT.org.bitlet.wetorrent.peer.task;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.logging.Level;
 
 import de.timmeey.anoBitT.org.bitlet.wetorrent.Event;
@@ -29,43 +30,52 @@ import de.timmeey.anoBitT.org.bitlet.wetorrent.util.thread.ThreadTask;
 
 public class SendBitfield implements ThreadTask {
 
-    TorrentPeer peer;
+	TorrentPeer peer;
 
-    public SendBitfield(TorrentPeer peer) {
-        this.peer = peer;
-    }
+	public SendBitfield(TorrentPeer peer) {
+		this.peer = peer;
+	}
 
-    public boolean execute() throws Exception {
-        if (Torrent.verbose) {
-            peer.getPeersManager().getTorrent().addEvent(new Event(this, "Sending bitField ", Level.FINER));
-        }
-        try {
-            DataOutputStream os = new DataOutputStream(new OutputStreamLimiter(peer.getSocket().getOutputStream(), peer.getPeersManager().getTorrent().getUploadBandwidthLimiter()));
-            byte[] bitField = peer.getPeersManager().getTorrent().getTorrentDisk().getBitfieldCopy();
+	public boolean execute() throws Exception {
+		if (Torrent.verbose) {
+			peer.getPeersManager()
+					.getTorrent()
+					.addEvent(new Event(this, "Sending bitField ", Level.FINER));
+		}
+		try {
+			System.out.println("Sending out bitfield");
+			DataOutputStream os = new DataOutputStream(peer.getSocket()
+					.getOutputStream());
+			byte[] bitField = peer.getPeersManager().getTorrent()
+					.getTorrentDisk().getBitfieldCopy();
 
-            os.writeInt(1 + bitField.length);
-            os.writeByte(5);
-            os.write(bitField);
+			os.writeInt(1 + bitField.length);
+			os.writeByte(5);
+			os.write(bitField);
 
-        } catch (Exception e) {
-            if (Torrent.verbose) {
-                peer.getPeersManager().getTorrent().addEvent(new Event(this, "Problem sending bitfield", Level.WARNING));
-            }
-            throw e;
-        }
-        return false;
-    }
+		} catch (Exception e) {
+			if (Torrent.verbose) {
+				peer.getPeersManager()
+						.getTorrent()
+						.addEvent(
+								new Event(this, "Problem sending bitfield",
+										Level.WARNING));
+			}
+			throw e;
+		}
+		return false;
+	}
 
-    public void interrupt() {
-        try {
-            peer.getSocket().close();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-    }
+	public void interrupt() {
+		try {
+			peer.getSocket().close();
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+	}
 
-    public void exceptionCought(Exception e) {
-        e.printStackTrace();
-        peer.interrupt();
-    }
+	public void exceptionCought(Exception e) {
+		e.printStackTrace();
+		peer.interrupt();
+	}
 }

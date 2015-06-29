@@ -92,8 +92,10 @@ public class PeerGroupManager {
 	}
 
 	public Optional<PeerGroup> tryToJoinWithOffer(String secretOneTimePassword) {
-		String securedOnionAddress = dhtService.get(PeerGroupApplicationOffer
-				.getSecretOneTimePasswordHash(secretOneTimePassword));
+		String securedOnionAddress = dhtService.get(
+				PeerGroupApplicationOffer
+						.getSecretOneTimePasswordHash(secretOneTimePassword))
+				.get(0);
 		if (securedOnionAddress != null) {
 			logger.debug("Got some value for our secretOneTimePassword: %s",
 					securedOnionAddress);
@@ -138,5 +140,12 @@ public class PeerGroupManager {
 				.filter(m -> m.getIpAddress().equals(ip.getHostAddress()))
 				.findFirst();
 
+	}
+
+	public Optional<PeerGroupMember> getMemberForOnionAddress(
+			String onionAddress) {
+		return peerGroups.stream().flatMap(g -> g.getMembers().stream())
+				.filter(m -> m.getOnionAddress().equals(onionAddress))
+				.findFirst();
 	}
 }
