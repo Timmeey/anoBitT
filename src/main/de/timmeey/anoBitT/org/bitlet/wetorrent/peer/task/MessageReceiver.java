@@ -53,7 +53,6 @@ public class MessageReceiver implements ThreadTask {
 	}
 
 	public boolean execute() throws Exception {
-		System.out.println("Waiting to receive");
 
 		try {
 
@@ -63,7 +62,6 @@ public class MessageReceiver implements ThreadTask {
 			// peer.getPeersManager().getTorrent().addEvent(new Event(this,
 			// "Waiting new message",Level.FINEST));
 			int prefixLength = is.readInt();
-			System.out.println("Got something");
 			logger.trace("Got something");
 
 			addReceivedBytes(4 + prefixLength);
@@ -94,7 +92,6 @@ public class MessageReceiver implements ThreadTask {
 					if (prefixLength != 1) {
 						throw new ProtocolException();
 					}
-					System.out.println("Got intersted message");
 					peer.interested();
 					break;
 				case Message.NOT_INTERESTED: // not interested
@@ -179,7 +176,6 @@ public class MessageReceiver implements ThreadTask {
 			e.printStackTrace(System.err);
 			throw e;
 		}
-		System.out.println("Receiving worked. Returning true");
 		return true;
 	}
 
@@ -192,7 +188,7 @@ public class MessageReceiver implements ThreadTask {
 	}
 
 	public void exceptionCought(Exception e) {
-		System.out.println("OH FUCK FUCK FUCK FUCK");
+		logger.warn("Got exception", e);
 		peer.interrupt();
 	}
 

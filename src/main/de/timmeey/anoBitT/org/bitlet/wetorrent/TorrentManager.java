@@ -44,6 +44,8 @@ public class TorrentManager {
 	private NetSerializer gson;
 	private PeerGroupManager peerGroupManager;
 	private KeyPair keyPair;
+	private long lastCall = 0l;
+	private long lastByteCount = 0l;
 
 	private final Tracker tracker;
 
@@ -51,6 +53,7 @@ public class TorrentManager {
 
 	private SocketFactory plainSocketFactory;
 	private final IncomingPeerListener peerListener;
+	boolean stopped = false;
 
 	public TorrentManager(int port, DHTService dht, NetSerializer gson,
 			PeerGroupManager peerGroupManager, KeyPair keyPair,
@@ -72,8 +75,7 @@ public class TorrentManager {
 
 	}
 
-	public void startTorrent(String filename, String nameToStore)
-			throws Exception {
+	public void startTorrent(String filename) throws Exception {
 		// read torrent filename from command line arg
 
 		// Parse the metafile
@@ -82,7 +84,7 @@ public class TorrentManager {
 
 		// Create the torrent disk, this is the destination where the torrent
 		// file/s will be saved
-		File folder = new File("/tmp/" + nameToStore);
+		File folder = new File(System.getProperty("user.home") + "/torrent/");
 		folder.mkdirs();
 
 		TorrentDisk tdisk = new PlainFileSystemTorrentDisk(metafile, folder);
@@ -92,8 +94,11 @@ public class TorrentManager {
 		Torrent torrent = new Torrent(metafile, tdisk, peerListener, tracker,
 				torSocketFactory, plainSocketFactory);
 		torrent.startDownload();
-
-		while (true) {
+		long startedFromBytes = torrent.getTorrentDisk().getCompleted();
+		boolean alreadyStarted = false;
+		long startTime = 0l;
+		boolean alreadyStopped = false;
+		while (!stopped) {
 
 			try {
 				Thread.sleep(1000);
@@ -102,12 +107,52 @@ public class TorrentManager {
 			}
 
 			torrent.tick();
+			if (!alreadyStarted
+					&& startedFromBytes != torrent.getTorrentDisk()
+							.getCompleted()) {
+				startTime = System.currentTimeMillis();
+				alreadyStarted = true;
+			}
+			if (!alreadyStopped && torrent.isCompleted()) {
+				long stopTime = System.currentTimeMillis();
+				alreadyStopped = true;
+				long totalDuration = stopTime - startTime;
+				long totalBytes = torrent.getTorrentDisk().getCompleted()
+						- startedFromBytes;
+				System.out.println(String.format(
+						"Total time: %s, total bytes: %s, average B/s: %s",
+						totalDuration, totalBytes, totalBytes
+								/ (totalDuration / 1000)));
+
+			}
 			System.out.printf("Got %s peers, completed %d bytes\n", torrent
 					.getPeersManager().getActivePeersNumber(), torrent
 					.getTorrentDisk().getCompleted());
+			if (!torrent.isCompleted()) {
+				calculateBytePerSecond(torrent.getTorrentDisk().getCompleted());
+			}
 		}
 
 		torrent.interrupt();
 		peerListener.interrupt();
 	}
+
+	public void calculateBytePerSecond(long completedBytes) {
+		long transferredBytes = completedBytes - lastByteCount;
+		long now = System.currentTimeMillis();
+		long bytesPerSecond = transferredBytes / ((now - lastCall) / 1000);
+		lastByteCount = completedBytes;
+		lastCall = now;
+		System.out.println(bytesPerSecond + "B/s");
+		System.out.println(bytesPerSecond / 1024 + "kB/s");
+		System.out.println((bytesPerSecond / 1024 / 1024 + "MB/s"));
+
+	}
+
+	public void stop() {
+		System.out.println("Stopping torrents");
+		this.stopped = true;
+
+	}
+
 }

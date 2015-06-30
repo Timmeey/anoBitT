@@ -65,7 +65,6 @@ public class MessageSender implements ThreadTask {
 				if (message.getType() != Message.KEEP_ALIVE) {
 
 					byte[] payload = message.getPayload();
-					System.out.println("Sending " + message.getType());
 
 					if (payload != null) {
 						os.writeInt(payload.length + 1);

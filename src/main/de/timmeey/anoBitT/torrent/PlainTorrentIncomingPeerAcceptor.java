@@ -43,10 +43,6 @@ public class PlainTorrentIncomingPeerAcceptor extends Thread {
 			while (!Thread.interrupted()) {
 				try {
 					Socket cl = s.accept();
-					// SocketTransferRateWrapper cl = new
-					// SocketTransferRateWrapper(
-					// s.accept());
-					// sockets.add(cl);
 					logger.debug(
 							"Woho, got a torrent connection from {}, verifying now",
 							cl.getInetAddress());

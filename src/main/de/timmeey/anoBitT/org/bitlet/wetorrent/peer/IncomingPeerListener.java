@@ -53,7 +53,7 @@ public class IncomingPeerListener extends InterruptableTasksThread {
 		torAcceptor = new TorTorrentIncomingPeerAcceptor(this,
 				torSocketFactory, port);
 		torAcceptor.setDaemon(true);
-		// plainAcceptor.start();
+		plainAcceptor.start();
 		torAcceptor.start();
 		this.port = port;
 

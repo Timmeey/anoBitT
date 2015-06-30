@@ -150,29 +150,30 @@ public class DHTServer {
 	 * @throws InterruptedException
 	 */
 	private static void cleanup() throws InterruptedException {
-		synchronized (writeLock) {
-			synchronized (readLock) {
-				Stopwatch stop = Stopwatch.createStarted();
-				int deleted = 0;
-				logger.trace("Cleanup started");
-				long now = System.currentTimeMillis();
-				for (Iterator iterator = dht.keySet().iterator(); iterator
-						.hasNext();) {
-					String key = (String) iterator.next();
-					long creationTime = dhtTMO.get(key);
-					if (creationTime != 0 && creationTime + minRetention < now) {
-						iterator.remove();
-						dhtTMO.remove(key);
-						deleted++;
-					}
-
-				}
-				stop.stop();
-				logger.debug("Cleanup completed. Took {} and deleted: {}",
-						stop.toString(), deleted);
-
-			}
-		}
+		return;
+		// synchronized (writeLock) {
+		// synchronized (readLock) {
+		// Stopwatch stop = Stopwatch.createStarted();
+		// int deleted = 0;
+		// logger.trace("Cleanup started");
+		// long now = System.currentTimeMillis();
+		// for (Iterator iterator = dht.keySet().iterator(); iterator
+		// .hasNext();) {
+		// String key = (String) iterator.next();
+		// long creationTime = dhtTMO.get(key);
+		// if (creationTime != 0 && creationTime + minRetention < now) {
+		// iterator.remove();
+		// dhtTMO.remove(key);
+		// deleted++;
+		// }
+		//
+		// }
+		// stop.stop();
+		// logger.debug("Cleanup completed. Took {} and deleted: {}",
+		// stop.toString(), deleted);
+		//
+		// }
+		// }
 
 	}
 }

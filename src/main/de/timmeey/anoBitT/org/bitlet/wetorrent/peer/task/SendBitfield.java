@@ -43,7 +43,6 @@ public class SendBitfield implements ThreadTask {
 					.addEvent(new Event(this, "Sending bitField ", Level.FINER));
 		}
 		try {
-			System.out.println("Sending out bitfield");
 			DataOutputStream os = new DataOutputStream(peer.getSocket()
 					.getOutputStream());
 			byte[] bitField = peer.getPeersManager().getTorrent()

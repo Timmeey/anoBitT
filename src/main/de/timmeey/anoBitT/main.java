@@ -374,6 +374,7 @@ public class main {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
+				torrentManager.stop();
 				System.out.println("got shutdown request");
 				logger.info("Got shutdown request");
 			}

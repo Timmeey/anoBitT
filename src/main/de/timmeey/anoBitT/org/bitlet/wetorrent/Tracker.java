@@ -67,7 +67,9 @@ public class Tracker {
 		this.gson = checkNotNull(gson);
 		this.peerGroupManager = checkNotNull(peerGroupManager);
 		this.keyPair = checkNotNull(keyPair);
-		new Random().nextBytes(peerID);
+		for (int i = 0; i < peerID.length; i++) {
+			peerID[i] = keyPair.getOnionAddress().getBytes()[i];
+		}
 	}
 
 	public Set<MinimalPeer> getMorePeers(Torrent torrent) {
@@ -83,6 +85,7 @@ public class Tracker {
 			for (String peer : answer) {
 				MinimalPeer tmpPeer = gson.fromJson(peer, MinimalPeer.class);
 				if (tmpPeer.getAddress().equals(keyPair.getOnionAddress())) {
+					logger.trace("Ignoring self as peer");
 					// we don't want self connections
 					break;
 				}

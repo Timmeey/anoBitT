@@ -117,9 +117,8 @@ public class ConsoleClient {
 	}
 
 	@Command
-	public void addTorrent(String torrentFile, String nameToStore)
-			throws Exception {
-		torrentManager.startTorrent(torrentFile, nameToStore);
+	public void addTorrent(String torrentFile) throws Exception {
+		torrentManager.startTorrent(torrentFile);
 	}
 
 	@Command

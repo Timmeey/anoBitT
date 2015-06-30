@@ -33,11 +33,9 @@ public class StartMessageReceiver implements ThreadTask {
 	}
 
 	public boolean execute() throws Exception {
-		System.out.println("Starting receiver thread");
 
 		try {
 			peer.getReceiverThread().start();
-			System.out.println("Receiver thread started");
 		} catch (Exception e) {
 
 			if (Torrent.verbose) {

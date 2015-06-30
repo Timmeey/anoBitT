@@ -186,7 +186,7 @@ public class PeersManager {
 	}
 
 	public synchronized void interrupt() {
-		System.out.println("Inerrupting from PeersManager");
+		System.out.println("Interrupting from PeersManager");
 		while (connectingPeers.size() > 0) {
 			connectingPeers.get(0).interrupt();
 		}

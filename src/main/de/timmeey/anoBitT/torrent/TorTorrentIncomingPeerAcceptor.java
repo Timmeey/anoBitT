@@ -41,9 +41,6 @@ public class TorTorrentIncomingPeerAcceptor extends Thread {
 			while (!Thread.interrupted()) {
 				try {
 					Socket client = serverSocket.accept();
-					// SocketTransferRateWrapper cl = new
-					// SocketTransferRateWrapper(serverSocket.accept());
-					// sockets.add(cl);
 					logger.error("Woho, got a tor torrent connection, dispatching");
 					incomingListener.addConnection(client);
 

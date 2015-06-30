@@ -137,7 +137,6 @@ public class TorrentPeer implements Peer {
 
 	public synchronized void setBitfield(byte[] bitfield) {
 		this.bitfield = bitfield;
-		System.out.println("Has piece 5?" + this.hasPiece(5));
 	}
 
 	/* messages sent by remote peer */
@@ -289,12 +288,9 @@ public class TorrentPeer implements Peer {
 	}
 
 	public void setAmInterested(boolean amInterested) {
-		System.out.println("amInteested called with: " + amInterested);
 		if (!this.amInterested && amInterested) {
-			System.out.println("Sending interested message");
 			sendMessage(new Message(Message.INTERESTED, null));
 		} else if (this.amInterested && !amInterested) {
-			System.out.println("Sending notInterested message");
 			sendMessage(new Message(Message.NOT_INTERESTED, null));
 		}
 		this.amInterested = amInterested;

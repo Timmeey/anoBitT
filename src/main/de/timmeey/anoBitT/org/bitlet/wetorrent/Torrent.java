@@ -104,8 +104,14 @@ public class Torrent extends InterruptableTasksThread {
 	}
 
 	public synchronized void addEvent(Event event) {
+		if (event.getLevel() == Level.FINEST) {
+			logger.trace((event.getDescription() + ": " + event.getAuthor()));
+		} else if (event.getLevel() == Level.WARNING) {
+			logger.warn((event.getDescription() + ": " + event.getAuthor()));
+		} else {
 
-		System.err.println(event.getDescription() + ": " + event.getAuthor());
+			logger.debug((event.getDescription() + ": " + event.getAuthor()));
+		}
 		/* events.add(event); */
 	}
 
@@ -142,7 +148,6 @@ public class Torrent extends InterruptableTasksThread {
 	}
 
 	public void bitfield(byte[] bitfield, Peer peer) {
-		System.out.println("Got bitfield");
 
 		for (int i = 0; i < metafile.getPieces().size(); i++) {
 
@@ -250,17 +255,19 @@ public class Torrent extends InterruptableTasksThread {
 		peersManager.tick();
 		choker.tick();
 
-		long now = System.currentTimeMillis();
-		if (force
-				|| now - activeTracker.getLastRequestTime() >= activeTracker
-						.getREQUEST_INTERVAL()) {
+		if (!isCompleted()) {
+			long now = System.currentTimeMillis();
+			if (force
+					|| now - activeTracker.getLastRequestTime() >= activeTracker
+							.getREQUEST_INTERVAL()) {
 
-			if (!stopped) {
-				try {
-					addPeers(activeTracker.getMorePeers(this));
+				if (!stopped) {
+					try {
+						addPeers(activeTracker.getMorePeers(this));
 
-				} catch (Exception e) {
-					e.printStackTrace();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
@@ -282,8 +289,6 @@ public class Torrent extends InterruptableTasksThread {
 		logger.info("Starting torrent {}", this.getName());
 		stopped = false;
 		activeTracker.start(this);
-		Set<MinimalPeer> peers = this.activeTracker.getMorePeers(this);
-		logger.info("Got {} Peers for {}", peers.size(), this.getName());
-		addPeers(peers);
+		this.tick();
 	}
 }
