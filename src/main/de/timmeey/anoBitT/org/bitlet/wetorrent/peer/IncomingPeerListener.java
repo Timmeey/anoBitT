@@ -45,17 +45,22 @@ public class IncomingPeerListener extends InterruptableTasksThread {
 
 	public IncomingPeerListener(SocketFactory torSocketFactory,
 			SocketFactory plainSocketFactory,
-			PeerGroupManager peerGroupManager, int port) throws IOException {
-
-		plainAcceptor = new PlainTorrentIncomingPeerAcceptor(this,
-				plainSocketFactory, peerGroupManager, port);
-		plainAcceptor.setDaemon(true);
+			PeerGroupManager peerGroupManager, int port) throws IOException,
+			InterruptedException {
 		torAcceptor = new TorTorrentIncomingPeerAcceptor(this,
 				torSocketFactory, port);
-		torAcceptor.setDaemon(true);
-		plainAcceptor.start();
-		torAcceptor.start();
-		this.port = port;
+		synchronized (torAcceptor) {
+
+			plainAcceptor = new PlainTorrentIncomingPeerAcceptor(this,
+					plainSocketFactory, peerGroupManager, port);
+			plainAcceptor.setDaemon(true);
+
+			torAcceptor.setDaemon(true);
+			plainAcceptor.start();
+			torAcceptor.start();
+			torAcceptor.wait();
+			this.port = port;
+		}
 
 	}
 

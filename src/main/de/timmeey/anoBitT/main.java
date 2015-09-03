@@ -274,7 +274,7 @@ public class main {
 
 	}
 
-	private static void initTorrentManager() {
+	private static void initTorrentManager() throws InterruptedException {
 		try {
 			torrentManager = new TorrentManager(Integer.parseInt(appProps
 					.getProperty("torrentPort")), dhtService, gson,
@@ -374,7 +374,9 @@ public class main {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
-				torrentManager.stop();
+				if (torrentManager != null) {
+					torrentManager.stop();
+				}
 				System.out.println("got shutdown request");
 				logger.info("Got shutdown request");
 			}

@@ -127,4 +127,17 @@ public class ConsoleClient {
 		createApplicationOffer(group.getUUID().toString());
 	}
 
+	@Command
+	public void showGroupInfo(
+			@Param(name = "uuid", description = "The uuid of the PeerGroup") String uuid) {
+		UUID uuid1 = UUID.fromString(uuid);
+		PeerGroup group = peerGroupManager.getPeerGroupByUUID(uuid1).get();
+		System.out.println(String.format("Group: %s", group.getUUID()));
+		for (PeerGroupMember member : group.getMembers()) {
+			System.out.println(String.format("Member: %s, IP %s",
+					member.getOnionAddress(), member.getIpAddress()));
+		}
+
+	}
+
 }

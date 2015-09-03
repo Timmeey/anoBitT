@@ -33,8 +33,12 @@ public class TorTorrentIncomingPeerAcceptor extends Thread {
 
 	@Override
 	public void run() {
+
 		try {
-			serverSocket = socketFactory.getServerSocket(port);
+			synchronized (this) {
+				serverSocket = socketFactory.getServerSocket(port);
+				this.notify();
+			}
 			logger.info(
 					"Opened tor ServerSocket on port {} to accept incoming torrent connections from anyone",
 					port);

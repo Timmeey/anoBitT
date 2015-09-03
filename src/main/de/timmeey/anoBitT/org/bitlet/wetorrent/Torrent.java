@@ -285,10 +285,15 @@ public class Torrent extends InterruptableTasksThread {
 		getPeersManager().interrupt();
 	}
 
-	public void startDownload() throws Exception {
+	public boolean startDownload() throws Exception {
 		logger.info("Starting torrent {}", this.getName());
 		stopped = false;
-		activeTracker.start(this);
-		this.tick();
+		if (activeTracker.start(this)) {
+			this.tick();
+			return true;
+		} else {
+			return false;
+		}
+
 	}
 }

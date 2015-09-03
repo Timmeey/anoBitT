@@ -118,13 +118,13 @@ public class Tracker {
 		return;
 	}
 
-	public void start(Torrent torrent) throws SerializerException {
+	public boolean start(Torrent torrent) throws SerializerException {
 		logger.debug("Putting myself into DHT for torret {}", torrent.getName());
 		MinimalPeer selfPeer = new MinimalPeer(peerID,
 				keyPair.getOnionAddress());
-		dht.put(torrent.getMetafile().getInfoSha1Encoded(),
+		return dht.put(torrent.getMetafile().getInfoSha1Encoded(),
 				gson.toJson(selfPeer), true);
-		return;
+
 	}
 
 	public byte[] getPeerId() {
