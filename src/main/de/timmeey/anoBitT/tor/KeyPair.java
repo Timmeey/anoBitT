@@ -106,7 +106,7 @@ public class KeyPair {
 
 	public Map<String, String> getAuthMapForMessage(PeerGroupMember recipient) {
 		Map<String, String> authMap = new HashMap<String, String>();
-		authMap.put("signedRecepient", Base64Helper.byteToString(this
+		authMap.put("signedRecepient", Base64Helper.byteToBase64String(this
 				.signMsg(recipient.getOnionAddress())));
 		authMap.put("sender", this.getOnionAddress());
 
@@ -119,7 +119,7 @@ public class KeyPair {
 				sendingMember.getOnionAddress());
 		String signedRecipient = authMap.get("signedRecepient");
 		boolean result = verifySignature(getOnionAddress(),
-				Base64Helper.stringToByte(signedRecipient), sendingMember);
+				Base64Helper.base64StringToByte(signedRecipient), sendingMember);
 		logger.debug("Verification of signature returend {} for {}", result,
 				sendingMember.getOnionAddress());
 		return result;
